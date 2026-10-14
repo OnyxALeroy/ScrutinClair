@@ -1,0 +1,43 @@
+# docker-compose.yml
+services:
+  scrutinclair-database:
+    image: postgres:16-alpine
+    environment:
+          POSTGRES_DB: ${POSTGRES_DB}
+          POSTGRES_USER: ${POSTGRES_USER}
+          POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - scrutinclair-network
+
+  scrutinclair-php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - .:/var/www/symfony
+    depends_on:
+      - scrutinclair-database
+    networks:
+      - scrutinclair-network
+
+  scrutinclair-nginx:
+    image: nginx:alpine
+    ports:
+      # Utilise la variable APP_PORT du .env, ou 8000 par défaut si elle est absente
+      - "${APP_PORT:-8000}:80"
+    volumes:
+      - .:/var/www/symfony
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - scrutinclair-php
+    networks:
+      - scrutinclair-network
+
+volumes:
+  db-data:
+
+networks:
+  scrutinclair-network:
+    driver: bridge
