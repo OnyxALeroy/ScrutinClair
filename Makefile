@@ -1,4 +1,4 @@
-.PHONY: help up down restart shell db-shell diff migrate db-reset cache
+.PHONY: help init up down restart shell db-shell diff migrate db-reset cache import
 
 # Variables pour éviter de répéter les noms
 PHP = scrutinclair-php
@@ -11,6 +11,10 @@ help:
 	@grep -E '(^[a-zA-Z_-]+:.*?##.*$$)|(^##)' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[32m%-20s\033[0m %s\n", $$1, $$2}'
 
 ## --- Docker ---
+init: # Initialise la stack
+	docker compose exec $(PHP) composer install
+	docker compose up -d --build
+
 up: ## Démarre les conteneurs en arrière-plan
 	docker compose up -d
 
@@ -40,5 +44,12 @@ cache: ## Vide le cache de Symfony
 	docker compose exec $(PHP) bin/console cache:clear
 
 ## --- App ---
-import: ## Lance l'importation de l'Assemblée avec 1Go de RAM
+import: ## Lance tous les imports (scrutins, personnalites)
 	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-assemblee
+	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-personnalites
+
+import-scrutins: ## Lance l'importation de l'Assemblée avec 1Go de RAM
+	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-assemblee
+
+import-personnalites: ## Lance l'importation des personnalités politiques avec 1Go de RAM
+	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-personnalites

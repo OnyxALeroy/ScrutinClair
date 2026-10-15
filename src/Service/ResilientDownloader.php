@@ -67,6 +67,13 @@ class ResilientDownloader
                     fclose($fileHandler);
                 }
 
+                echo "[Tentative $attempt/$maxRetries] Erreur : " . $e->getMessage() . "\n";
+
+                // Si c'est une erreur 404, ça ne sert à rien de réessayer
+                if (str_contains($e->getMessage(), '404')) {
+                    throw new Exception("Arrêt immédiat : Le fichier n'existe pas (Erreur 404). Vérifiez l'URL : '" . $url . "'");
+                }
+
                 // On fait une pause de 2 secondes avant la prochaine tentative
                 sleep(2);
             }
