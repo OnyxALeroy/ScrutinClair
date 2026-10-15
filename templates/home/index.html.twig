@@ -18,7 +18,7 @@
 
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <h1>Les Textes de l'Assemblée</h1>
-        
+
         {# Le bouton d'import #}
         <form action="{{ path('app_import') }}" method="POST">
             <button type="submit" style="padding: 0.5rem 1rem; background: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer;">
@@ -38,7 +38,7 @@
             {# La magie de l'ORM : texte.votes va chercher les données dans la table Vote #}
             {% for vote in texte.votes %}
                 <li>
-                    <strong>{{ vote.personnalite.prenom }} {{ vote.personnalite.nom }}</strong> :
+                    <strong>{{ vote.personalite.prenom }} {{ vote.personalite.nom }}</strong> :
                     {{ vote.statut }}
                 </li>
             {% else %}

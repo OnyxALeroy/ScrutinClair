@@ -28,7 +28,7 @@ class ImportAssembleeCommand extends Command
         $io->info('Vérification et téléchargement de l\'archive (reprise automatique en cas de coupure)...');
 
         // On lance notre service (qui lui, possède le $projectDir et le downloader)
-        $this->importer->importTextes();
+        $this->importer->importTextes($io);
 
         $io->success('Import des textes terminé avec succès !');
 

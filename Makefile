@@ -45,11 +45,11 @@ cache: ## Vide le cache de Symfony
 
 ## --- App ---
 import: ## Lance tous les imports (scrutins, personnalites)
-	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-assemblee
-	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-personnalites
+	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-personnalites --no-debug
+	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-assemblee --no-debug
 
 import-scrutins: ## Lance l'importation de l'Assemblée avec 1Go de RAM
-	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-assemblee
+	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-assemblee --no-debug
 
 import-personnalites: ## Lance l'importation des personnalités politiques avec 1Go de RAM
-	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-personnalites
+	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-personnalites --no-debug

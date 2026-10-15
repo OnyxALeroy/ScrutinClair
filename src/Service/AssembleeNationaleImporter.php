@@ -2,9 +2,12 @@
 namespace App\Service;
 
 use App\Entity\Texte;
+use App\Entity\PersonnalitePolitique;
+use App\Entity\Vote;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use ZipArchive;
 
 class AssembleeNationaleImporter
@@ -12,15 +15,13 @@ class AssembleeNationaleImporter
     public function __construct(
         #[Autowire('%kernel.project_dir%')]
         private string $projectDir,
+        private EntityManagerInterface $entityManager,
         #[Autowire('%env(API_ASSEMBLEE_URL)%')]
         private string $apiUrl,
-
-        private EntityManagerInterface $entityManager,
         private ResilientDownloader $downloader
-    ) {
-    }
+    ) {}
 
-    public function importTextes(): void
+    public function importTextes(?SymfonyStyle $io = null): void
     {
         $dataDir = $this->projectDir . '/data';
         $zipPath = $dataDir . '/scrutins.zip';
@@ -30,77 +31,132 @@ class AssembleeNationaleImporter
             mkdir($dataDir, 0777, true);
         }
 
-        // 1. Téléchargement robuste et automatique
-        // Si le fichier existe déjà et est complet, ça prendra 0 seconde.
-        // S'il est incomplet ou absent, ça le téléchargera.
+        // 1. Téléchargement de l'archive
         $this->downloader->download($this->apiUrl, $zipPath);
 
-        // 2. Extraction du ZIP
+        // 2. Extraction
         $zip = new ZipArchive();
         if ($zip->open($zipPath) === true) {
             $zip->extractTo($extractPath);
             $zip->close();
 
-            // 3. Outil Symfony natif pour fouiller dans les dossiers extraits
             $finder = new Finder();
-            // On cherche tous les fichiers qui finissent par .json dans le dossier extrait
             $finder->files()->in($extractPath)->name('*.json');
 
-            if ($finder->hasResults()) {
-                // On prend le tout premier fichier trouvé pour l'analyser
-                $iterator = $finder->getIterator();
-                $iterator->rewind();
+            $totalFichiers = $finder->count();
+            if ($io) {
+                $io->writeln("Extraction terminée. Début de la lecture des $totalFichiers scrutins...");
+                $io->progressStart($totalFichiers); // Initialise la barre
+            }
 
-                $finder = new Finder();
-                $finder->files()->in($extractPath)->name('*.json');
+            $texteRepository = $this->entityManager->getRepository(Texte::class);
+            $personnaliteRepository = $this->entityManager->getRepository(PersonnalitePolitique::class);
 
-                $texteRepository = $this->entityManager->getRepository(Texte::class);
-                $compteur = 0;
+            // 3. OPTIMISATION EXTRÊME : On charge tous les députés en mémoire RAM
+            $deputes = $personnaliteRepository->findAll();
+            $deputesDict = [];
+            foreach ($deputes as $depute) {
+                $deputesDict[$depute->getUid()] = $depute;
+            }
 
-                foreach ($finder as $file) {
-                    $jsonContent = $file->getContents();
-                    $data = json_decode($jsonContent, true);
+            $compteurTextes = 0;
+            $compteurVotes = 0;
 
-                    // On vérifie que la clé scrutin existe bien dans ce fichier
-                    if (!isset($data['scrutin'])) {
-                        continue;
-                    }
+            foreach ($finder as $file) {
+                $jsonContent = $file->getContents();
+                $data = json_decode($jsonContent, true);
 
-                    $donneesScrutin = $data['scrutin'];
+                if (!isset($data['scrutin'])) {
+                    continue;
+                }
 
-                    // 1. Récupération du titre (on utilise objet.libelle comme on l'a vu dans le dd)
-                    // L'opérateur ?? '' évite une erreur si la clé n'existe pas
-                    $titre = $donneesScrutin['objet']['libelle'] ?? $donneesScrutin['titre'] ?? 'Scrutin sans titre';
+                $donneesScrutin = $data['scrutin'];
 
-                    // 2. Anti-doublon (pour pouvoir relancer l'import sans tout dupliquer)
-                    $texteExistant = $texteRepository->findOneBy(['titre' => $titre]);
-                    if ($texteExistant !== null) {
-                        continue;
-                    }
+                // Récupération des infos du texte
+                $titre = $donneesScrutin['objet']['libelle'] ?? $donneesScrutin['titre'] ?? 'Scrutin sans titre';
 
-                    // 3. Création de l'Entité
-                    $texte = new Texte();
-                    $texte->setTitre($titre);
+                // Anti-doublon
+                $texteExistant = $texteRepository->findOneBy(['titre' => $titre]);
+                if ($texteExistant !== null) {
+                    continue;
+                }
 
-                    // On récupère le résultat (adopté / rejeté)
-                    $sort = $donneesScrutin['sort']['libelle'] ?? 'Résultat inconnu';
-                    $texte->setDescription('Résultat du vote : ' . $sort);
+                // Création du Texte
+                $texte = new Texte();
+                $texte->setTitre($titre);
+                $sort = $donneesScrutin['sort']['libelle'] ?? 'Résultat inconnu';
+                $texte->setDescription('Résultat du vote : ' . $sort);
 
-                    $this->entityManager->persist($texte);
-                    $compteur++;
+                $this->entityManager->persist($texte);
+                $compteurTextes++;
 
-                    // Petite optimisation : on flush par paquets de 100 pour ne pas saturer la RAM de PHP
-                    if ($compteur % 100 === 0) {
-                        $this->entityManager->flush();
-                        $this->entityManager->clear(); // Vide la mémoire de Doctrine
+                // 4. LECTURE DES VOTES
+                $groupes = $donneesScrutin['ventilationVotes']['organe']['groupes']['groupe'] ?? [];
+                if (isset($groupes['organeRef'])) {
+                    $groupes = [$groupes]; // Formatage forcé en tableau si un seul groupe
+                }
+
+                foreach ($groupes as $groupe) {
+                    $decompte = $groupe['vote']['decompteNominatif'] ?? null;
+                    if (!$decompte) continue;
+
+                    $typesVote = [
+                        'Pour' => $decompte['pours']['votant'] ?? [],
+                        'Contre' => $decompte['contres']['votant'] ?? [],
+                        'Abstention' => $decompte['abstentions']['votant'] ?? []
+                    ];
+
+                    foreach ($typesVote as $statut => $votants) {
+                        if (empty($votants)) continue;
+
+                        if (isset($votants['acteurRef'])) {
+                            $votants = [$votants]; // Formatage forcé en tableau si un seul votant
+                        }
+
+                        foreach ($votants as $votant) {
+                            $uidActeur = $votant['acteurRef'] ?? null;
+
+                            // Si on trouve le député dans notre dictionnaire en mémoire
+                            if ($uidActeur && isset($deputesDict[$uidActeur])) {
+                                $vote = new Vote();
+                                $vote->setTexte($texte);
+                                // Attention: vous avez nommé la propriété $personalite avec un seul N dans votre entité Vote
+                                $vote->setPersonalite($deputesDict[$uidActeur]);
+                                $vote->setStatut($statut);
+
+                                $this->entityManager->persist($vote);
+                                $compteurVotes++;
+                            }
+                        }
                     }
                 }
 
-                // On flush le reste à la fin
-                $this->entityManager->flush();
+                // 4.5. On fait avancer la barre de 1 étape à chaque fichier traité
+                if ($io) {
+                    $io->progressAdvance();
+                }
 
-                // On peut afficher un petit message dans la console à la fin
-                echo "Import terminé. " . $compteur . " nouveaux scrutins insérés.\n";
+                // 5. Gestion de la mémoire : on vide tous les 20 textes (soit environ 10 000 votes)
+                if ($compteurTextes % 20 === 0) {
+                    $this->entityManager->flush();
+                    $this->entityManager->clear();
+
+                    // IMPORTANT : Le clear() détache les entités. On doit recharger notre dictionnaire.
+                    $deputes = $personnaliteRepository->findAll();
+                    $deputesDict = [];
+                    foreach ($deputes as $depute) {
+                        $deputesDict[$depute->getUid()] = $depute;
+                    }
+                }
+            }
+
+            $this->entityManager->flush();
+
+            // On termine la barre proprement
+            if ($io) {
+                $io->progressFinish();
+                $io->newLine(2); // Saute deux lignes pour la lisibilité
+                $io->writeln("<info>Bilan final : $compteurTextes textes et $compteurVotes votes insérés en base de données.</info>");
             }
         }
     }
