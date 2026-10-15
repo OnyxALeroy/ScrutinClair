@@ -16,7 +16,7 @@ class Texte
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(type: 'text')]
     private ?string $titre = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]

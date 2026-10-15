@@ -8,3 +8,9 @@
 /var/
 /vendor/
 ###< symfony/framework-bundle ###
+
+
+###< Dossiers de données ###
+# Fichiers de données importés
+/data/
+###< Dossiers de données ###

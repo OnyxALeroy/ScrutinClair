@@ -16,7 +16,7 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     volumes:
-      - .:/var/www/symfony
+      - .:/var/www/symfony:z
     depends_on:
       - scrutinclair-database
     networks:

@@ -9,6 +9,26 @@
 </style>
 
 <div class="example-wrapper">
+    {# Affichage des messages flash (ex: succès de l'import) #}
+    {% for message in app.flashes('success') %}
+        <div style="background-color: #d4edda; color: #155724; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;">
+            {{ message }}
+        </div>
+    {% endfor %}
+
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Les Textes de l'Assemblée</h1>
+        
+        {# Le bouton d'import #}
+        <form action="{{ path('app_import') }}" method="POST">
+            <button type="submit" style="padding: 0.5rem 1rem; background: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                Importer les données
+            </button>
+        </form>
+    </div>
+
+    <hr>
+
     {% if texte %}
         <h1>{{ texte.titre }}</h1>
         <p><em>{{ texte.description }}</em></p>
