@@ -27,6 +27,9 @@ class PersonnalitePolitique
     #[ORM\OneToMany(targetEntity: Vote::class, mappedBy: 'personalite')]
     private Collection $votes;
 
+    #[ORM\Column(length: 255)]
+    private ?string $uid = null;
+
     public function __construct()
     {
         $this->votes = new ArrayCollection();
@@ -87,6 +90,18 @@ class PersonnalitePolitique
                 $vote->setPersonalite(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getUid(): ?string
+    {
+        return $this->uid;
+    }
+
+    public function setUid(string $uid): static
+    {
+        $this->uid = $uid;
 
         return $this;
     }

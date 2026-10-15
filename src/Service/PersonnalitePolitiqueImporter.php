@@ -60,26 +60,25 @@ class PersonnalitePolitiqueImporter
                 $acteur = $data['acteur'];
                 $etatCivil = $acteur['etatCivil']['ident'];
 
-                // On récupère le prénom et le nom de famille
+                // On récupère le prénom, nom de famille et UID
                 $prenom = $etatCivil['prenom'] ?? '';
                 $nom = $etatCivil['nom'] ?? '';
+                $uid = $acteur['uid']['#text'] ?? '';
 
-                if (empty($prenom) && empty($nom)) {
+                // On vérifie que l'UID n'est pas vide avant de continuer
+                if (empty($prenom) && empty($nom) || empty($uid)) {
                     continue;
                 }
 
-                // Anti-doublon basé sur le nom et le prénom
-                $personnaliteExistante = $personnaliteRepository->findOneBy([
-                    'nom' => $nom,
-                    'prenom' => $prenom
-                ]);
-
+                // Anti-doublon
+                $personnaliteExistante = $personnaliteRepository->findOneBy(['uid' => $uid]);
                 if ($personnaliteExistante !== null) {
                     continue;
                 }
 
                 // Création de l'Entité
                 $personnalite = new PersonnalitePolitique();
+                $personnalite->setUid($uid);
                 $personnalite->setNom($nom);
                 $personnalite->setPrenom($prenom);
 
