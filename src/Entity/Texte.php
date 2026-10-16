@@ -91,4 +91,89 @@ class Texte
 
         return $this;
     }
+
+    public function getHemicyclePolitique(): array
+    {
+        $votesParGroupe = [];
+        $totalVotes = 0;
+
+        // 1. Groupement des votes
+        foreach ($this->getVotes() as $vote) {
+            $groupe = $vote->getGroupePolitique();
+            if (!$groupe)
+                continue;
+
+            $uid = $groupe->getUid();
+
+            if (!isset($votesParGroupe[$uid])) {
+                $votesParGroupe[$uid] = [
+                    'groupe' => $groupe,
+                    'Pour' => 0,
+                    'Contre' => 0,
+                    'Abstention' => 0,
+                    'total' => 0
+                ];
+            }
+
+            $statut = $vote->getStatut();
+            if (isset($votesParGroupe[$uid][$statut])) {
+                $votesParGroupe[$uid][$statut]++;
+                $votesParGroupe[$uid]['total']++;
+                $totalVotes++;
+            }
+        }
+
+        if ($totalVotes === 0)
+            return ['total' => 0];
+
+        // 2. Tri dynamique basé sur la colonne "ordre" de votre base de données
+        usort($votesParGroupe, function ($a, $b) {
+            return $a['groupe']->getOrdre() <=> $b['groupe']->getOrdre();
+        });
+
+        // 3. Calcul du CSS
+        $degresActuels = 0;
+        $gradientPartis = [];
+        $gradientVotes = [];
+        $details = [];
+
+        foreach ($votesParGroupe as $data) {
+            $groupe = $data['groupe'];
+            $partDeg = ($data['total'] / $totalVotes) * 180;
+            $finParti = $degresActuels + $partDeg;
+
+            // La couleur vient de l'entité GroupePolitique
+            $gradientPartis[] = "{$groupe->getCouleur()} {$degresActuels}deg {$finParti}deg";
+
+            $degPour = ($data['Pour'] / $data['total']) * $partDeg;
+            $degContre = ($data['Contre'] / $data['total']) * $partDeg;
+
+            $finPour = $degresActuels + $degPour;
+            $finContre = $finPour + $degContre;
+
+            if ($degPour > 0)
+                $gradientVotes[] = "#22c55e {$degresActuels}deg {$finPour}deg";
+            if ($degContre > 0)
+                $gradientVotes[] = "#ef4444 {$finPour}deg {$finContre}deg";
+            if ($data['Abstention'] > 0)
+                $gradientVotes[] = "#9ca3af {$finContre}deg {$finParti}deg";
+
+            $degresActuels = $finParti;
+
+            $details[] = [
+                'nom' => $groupe->getAcronyme() ?? $groupe->getNom(),
+                'couleur' => $groupe->getCouleur(),
+                'Pour' => $data['Pour'],
+                'Contre' => $data['Contre'],
+                'Abstention' => $data['Abstention']
+            ];
+        }
+
+        return [
+            'total' => $totalVotes,
+            'css_partis' => implode(', ', $gradientPartis),
+            'css_votes' => implode(', ', $gradientVotes),
+            'details' => $details
+        ];
+    }
 }

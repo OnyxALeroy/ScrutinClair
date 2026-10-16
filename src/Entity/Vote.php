@@ -24,6 +24,12 @@ class Vote
     #[ORM\JoinColumn(nullable: false)]
     private ?PersonnalitePolitique $personalite = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $groupe = null;
+
+    #[ORM\ManyToOne(inversedBy: 'votes')]
+    private ?GroupePolitique $groupePolitique = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -61,6 +67,30 @@ class Vote
     public function setPersonalite(?PersonnalitePolitique $personalite): static
     {
         $this->personalite = $personalite;
+
+        return $this;
+    }
+
+    public function getGroupe(): ?string
+    {
+        return $this->groupe;
+    }
+
+    public function setGroupe(string $groupe): static
+    {
+        $this->groupe = $groupe;
+
+        return $this;
+    }
+
+    public function getGroupePolitique(): ?GroupePolitique
+    {
+        return $this->groupePolitique;
+    }
+
+    public function setGroupePolitique(?GroupePolitique $groupePolitique): static
+    {
+        $this->groupePolitique = $groupePolitique;
 
         return $this;
     }

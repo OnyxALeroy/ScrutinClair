@@ -34,6 +34,9 @@
         <p><em>{{ texte.description }}</em></p>
 
         <h2>Résultat des votes</h2>
+
+        {{ include('components/_hemicycle.html.twig', { texte: texte }) }}
+
         <ul>
             {# La magie de l'ORM : texte.votes va chercher les données dans la table Vote #}
             {% for vote in texte.votes %}

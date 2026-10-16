@@ -40,7 +40,38 @@ class PersonnalitePolitiqueImporter
             $zip->extractTo($extractPath);
             $zip->close();
 
-            // 3. Outil Symfony natif pour fouiller dans les dossiers extraits
+            // 3.1. Import des groupes politiques
+            $groupeRepository = $this->entityManager->getRepository(\App\Entity\GroupePolitique::class);
+            $finderGroupes = new Finder();
+            $finderGroupes->files()->in($extractPath)->name('PO*.json');
+
+            foreach ($finderGroupes as $file) {
+                $data = json_decode($file->getContents(), true);
+                // On ne garde que les Groupes Politiques (GP)
+                if (!isset($data['organe']) || $data['organe']['codeType'] !== 'GP')
+                    continue;
+
+                $uid = $data['organe']['uid'];
+                $nom = $data['organe']['libelle'];
+                $acronyme = $data['organe']['libelleAbrev'] ?? $nom;
+
+                $groupe = $groupeRepository->findOneBy(['uid' => $uid]);
+                if (!$groupe) {
+                    $groupe = new \App\Entity\GroupePolitique();
+                    $groupe->setUid($uid);
+                    // On met du gris et un ordre arbitraire par défaut
+                    $groupe->setCouleur('#9ca3af');
+                    $groupe->setOrdre(99);
+                }
+
+                $groupe->setNom($nom);
+                $groupe->setAcronyme($acronyme);
+                $this->entityManager->persist($groupe);
+            }
+            $this->entityManager->flush();
+            echo "Groupes politiques mis à jour.\n";
+
+            // 3.2. Outil Symfony natif pour fouiller dans les dossiers extraits
             $finder = new Finder();
             // Les fichiers des acteurs de l'Assemblée commencent toujours par "PA"
             $finder->files()->in($extractPath)->name('PA*.json');

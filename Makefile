@@ -53,3 +53,8 @@ import-scrutins: ## Lance l'importation de l'Assemblée avec 1Go de RAM
 
 import-personnalites: ## Lance l'importation des personnalités politiques avec 1Go de RAM
 	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-personnalites --no-debug
+
+## --- Utils ---
+clean: ## Supprime les archives téléchargées et vide le cache Symfony
+	rm -rf data/
+	docker compose exec scrutinclair-php bin/console cache:clear

@@ -31,6 +31,13 @@ class AssembleeNationaleImporter
             mkdir($dataDir, 0777, true);
         }
 
+        // 0. Récupération des noms des groupes politiques
+        $groupeRepository = $this->entityManager->getRepository(\App\Entity\GroupePolitique::class);
+        $groupesDict = [];
+        foreach ($groupeRepository->findAll() as $g) {
+            $groupesDict[$g->getUid()] = $g;
+        }
+
         // 1. Téléchargement de l'archive
         $this->downloader->download($this->apiUrl, $zipPath);
 
@@ -120,9 +127,15 @@ class AssembleeNationaleImporter
                             if ($uidActeur && isset($deputesDict[$uidActeur])) {
                                 $vote = new Vote();
                                 $vote->setTexte($texte);
-                                // Attention: vous avez nommé la propriété $personalite avec un seul N dans votre entité Vote
                                 $vote->setPersonalite($deputesDict[$uidActeur]);
                                 $vote->setStatut($statut);
+                                $vote->setGroupe($groupe['organeRef'] ?? null);
+
+                                // On récupère le groupe
+                                $groupeUid = $groupe['organeRef'] ?? null;
+                                if ($groupeUid && isset($groupesDict[$groupeUid])) {
+                                    $vote->setGroupePolitique($groupesDict[$groupeUid]);
+                                }
 
                                 $this->entityManager->persist($vote);
                                 $compteurVotes++;
@@ -141,11 +154,17 @@ class AssembleeNationaleImporter
                     $this->entityManager->flush();
                     $this->entityManager->clear();
 
-                    // IMPORTANT : Le clear() détache les entités. On doit recharger notre dictionnaire.
+                    // On recharge députés et groupes, suite au clear qui vide la mémoire Doctrine
                     $deputes = $personnaliteRepository->findAll();
                     $deputesDict = [];
                     foreach ($deputes as $depute) {
                         $deputesDict[$depute->getUid()] = $depute;
+                    }
+
+                    $groupes = $groupeRepository->findAll();
+                    $groupesDict = [];
+                    foreach ($groupes as $groupe) {
+                        $groupesDict[$groupe->getUid()] = $groupe;
                     }
                 }
             }
