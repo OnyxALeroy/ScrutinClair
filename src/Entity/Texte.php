@@ -22,6 +22,21 @@ class Texte
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $objet = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $synthese = null;
+
+    #[ORM\Column(length: 500, nullable: true)]
+    private ?string $lien = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $dossierRef = null;
+
+    #[ORM\Column(length: 20, nullable: true, unique: true)]
+    private ?string $uidScrutin = null;
+
     /**
      * @var Collection<int, Vote>
      */
@@ -58,6 +73,66 @@ class Texte
     public function setDescription(?string $description): static
     {
         $this->description = $description;
+
+        return $this;
+    }
+
+    public function getObjet(): ?string
+    {
+        return $this->objet;
+    }
+
+    public function setObjet(?string $objet): static
+    {
+        $this->objet = $objet;
+
+        return $this;
+    }
+
+    public function getSynthese(): ?string
+    {
+        return $this->synthese;
+    }
+
+    public function setSynthese(?string $synthese): static
+    {
+        $this->synthese = $synthese;
+
+        return $this;
+    }
+
+    public function getLien(): ?string
+    {
+        return $this->lien;
+    }
+
+    public function setLien(?string $lien): static
+    {
+        $this->lien = $lien;
+
+        return $this;
+    }
+
+    public function getDossierRef(): ?string
+    {
+        return $this->dossierRef;
+    }
+
+    public function setDossierRef(?string $dossierRef): static
+    {
+        $this->dossierRef = $dossierRef;
+
+        return $this;
+    }
+
+    public function getUidScrutin(): ?string
+    {
+        return $this->uidScrutin;
+    }
+
+    public function setUidScrutin(?string $uidScrutin): static
+    {
+        $this->uidScrutin = $uidScrutin;
 
         return $this;
     }

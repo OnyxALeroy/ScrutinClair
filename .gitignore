@@ -14,3 +14,7 @@
 # Fichiers de données importés
 /data/
 ###< Dossiers de données ###
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###

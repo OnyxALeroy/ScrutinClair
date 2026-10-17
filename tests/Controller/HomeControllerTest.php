@@ -9,8 +9,9 @@ final class HomeControllerTest extends WebTestCase
     public function testIndex(): void
     {
         $client = static::createClient();
-        $client->request('GET', '/home');
+        $client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
+        self::assertSelectorExists('#texte-search');
     }
 }

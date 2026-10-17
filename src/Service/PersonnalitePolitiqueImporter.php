@@ -12,9 +12,8 @@ class PersonnalitePolitiqueImporter
     public function __construct(
         #[Autowire('%kernel.project_dir%')]
         private string $projectDir,
-        #[Autowire('%env(API_ACTEURS_ASSEMBLEE_URL)%')]
-        private string $apiUrlAssemblee,
         private EntityManagerInterface $entityManager,
+        private AssembleeUrls $urls,
         private ResilientDownloader $downloader
     ) {}
 
@@ -32,7 +31,7 @@ class PersonnalitePolitiqueImporter
         }
 
         // 1. Téléchargement robuste
-        $this->downloader->download($this->apiUrlAssemblee, $zipPath);
+        $this->downloader->download($this->urls->acteursZipUrl(), $zipPath);
 
         // 2. Extraction du ZIP
         $zip = new ZipArchive();

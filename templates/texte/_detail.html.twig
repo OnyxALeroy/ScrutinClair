@@ -1,0 +1,30 @@
+{% if texte %}
+    <h1>{{ texte.objet ?? texte.titre }}</h1>
+    {% if texte.synthese %}
+        <p>{{ texte.synthese }}</p>
+    {% endif %}
+    {% if texte.description %}
+        <p><em>{{ texte.description }}</em></p>
+    {% endif %}
+    {% if texte.lien %}
+        <p><a href="{{ texte.lien }}" target="_blank" rel="noopener noreferrer">Voir le scrutin sur l’Assemblée nationale</a></p>
+    {% endif %}
+
+    <h2>Résultat des votes</h2>
+
+    {{ include('components/_hemicycle.html.twig', { texte: texte }) }}
+
+    <ul>
+        {# La magie de l'ORM : texte.votes va chercher les données dans la table Vote #}
+        {% for vote in texte.votes %}
+            <li>
+                <strong>{{ vote.personalite.prenom }} {{ vote.personalite.nom }}</strong> :
+                {{ vote.statut }}
+            </li>
+        {% else %}
+            <li>Aucun vote enregistré.</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>Aucun texte trouvé en base de données.</p>
+{% endif %}

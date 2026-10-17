@@ -1,11 +1,35 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Hello HomeController!{% endblock %}
+{% block title %}Recherche - ScrutinClair{% endblock %}
 
 {% block body %}
 <style>
     .example-wrapper { margin: 1em auto; max-width: 800px; width: 95%; font: 18px/1.5 sans-serif; }
     .example-wrapper code { background: #F5F5F5; padding: 2px 6px; }
+
+    .search { position: relative; margin: 1.5rem 0; }
+    .search input[type="search"] {
+        width: 100%; box-sizing: border-box; padding: 0.75rem 1rem; font-size: 1rem;
+        border: 1px solid #cbd5e1; border-radius: 6px;
+    }
+    .search ul {
+        list-style: none; margin: 0; padding: 0; position: absolute; z-index: 10;
+        left: 0; right: 0; background: #fff; border: 1px solid #cbd5e1; border-top: none;
+        border-radius: 0 0 6px 6px; max-height: 360px; overflow-y: auto; box-shadow: 0 6px 12px rgba(0,0,0,.08);
+    }
+    .search ul:empty { display: none; }
+    .search li { margin: 0; }
+    .search li a {
+        display: block; padding: 0.6rem 1rem; color: #1f2937; text-decoration: none;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .search li:last-child a { border-bottom: none; }
+    .search li a:hover, .search li a.active { background: #f1f5f9; }
+    .search li .synthese { display: block; font-size: 0.85em; color: #64748b; }
+
+    .results { list-style: none; padding: 0; }
+    .results li { padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9; }
+    .results a { text-decoration: none; }
 </style>
 
 <div class="example-wrapper">
@@ -17,7 +41,7 @@
     {% endfor %}
 
     <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>Les Textes de l'Assemblée</h1>
+        <h1>Rechercher un texte de l'Assemblée</h1>
 
         {# Le bouton d'import #}
         <form action="{{ path('app_import') }}" method="POST">
@@ -27,28 +51,33 @@
         </form>
     </div>
 
-    <hr>
+    <form class="search" action="{{ path('app_home') }}" method="GET" role="search" autocomplete="off"
+          data-textes-api="{{ path('app_textes_search') }}"
+          data-texte-url-base="{{ path('app_texte_show', { id: '__id__' }) }}">
+        <label for="texte-search" style="display:block; margin-bottom:0.5rem;">
+            Recherchez parmi les scrutins par objet, titre ou synthèse.
+        </label>
+        <input type="search" id="texte-search" name="q" value="{{ q }}" placeholder="Ex. projet de loi de finances..."
+               autocomplete="off" aria-autocomplete="list" aria-controls="texte-suggestions" aria-expanded="false">
+        <ul id="texte-suggestions" role="listbox"></ul>
+    </form>
 
-    {% if texte %}
-        <h1>{{ texte.titre }}</h1>
-        <p><em>{{ texte.description }}</em></p>
-
-        <h2>Résultat des votes</h2>
-
-        {{ include('components/_hemicycle.html.twig', { texte: texte }) }}
-
-        <ul>
-            {# La magie de l'ORM : texte.votes va chercher les données dans la table Vote #}
-            {% for vote in texte.votes %}
-                <li>
-                    <strong>{{ vote.personalite.prenom }} {{ vote.personalite.nom }}</strong> :
-                    {{ vote.statut }}
-                </li>
-            {% else %}
-                <li>Aucun vote enregistré.</li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>Aucune texte trouvé en base de données.</p>
+    {# Repli sans JavaScript : liste des résultats renvoyée par le serveur #}
+    {% if q != '' %}
+        {% if textes %}
+            <ul class="results">
+                {% for texte in textes %}
+                    <li>
+                        <a href="{{ path('app_texte_show', { id: texte.id }) }}">{{ texte.objet ?? texte.titre }}</a>
+                        {% if texte.synthese %}<div class="synthese" style="color:#64748b; font-size:0.85em;">{{ texte.synthese }}</div>{% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Aucun texte ne correspond à « {{ q }} ».</p>
+        {% endif %}
     {% endif %}
+</div>
+
+<script src="/js/search.js" defer></script>
 {% endblock %}

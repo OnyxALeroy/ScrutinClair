@@ -16,28 +16,22 @@ class TexteRepository extends ServiceEntityRepository
         parent::__construct($registry, Texte::class);
     }
 
-//    /**
-//     * @return Texte[] Returns an array of Texte objects
-//     */
-//    public function findByExampleField($value): array
-//    {
-//        return $this->createQueryBuilder('t')
-//            ->andWhere('t.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->orderBy('t.id', 'ASC')
-//            ->setMaxResults(10)
-//            ->getQuery()
-//            ->getResult()
-//        ;
-//    }
+    /**
+     * @return Texte[]
+     */
+    public function search(string $q, int $limit = 10): array
+    {
+        $q = trim($q);
+        if ($q === '') {
+            return [];
+        }
 
-//    public function findOneBySomeField($value): ?Texte
-//    {
-//        return $this->createQueryBuilder('t')
-//            ->andWhere('t.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->getQuery()
-//            ->getOneOrNullResult()
-//        ;
-//    }
+        return $this->createQueryBuilder('t')
+            ->andWhere('LOWER(t.titre) LIKE LOWER(:q) OR LOWER(t.objet) LIKE LOWER(:q) OR LOWER(t.synthese) LIKE LOWER(:q)')
+            ->setParameter('q', '%' . $q . '%')
+            ->orderBy('t.id', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
 }

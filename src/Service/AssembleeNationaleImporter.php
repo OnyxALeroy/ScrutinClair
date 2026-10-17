@@ -16,8 +16,7 @@ class AssembleeNationaleImporter
         #[Autowire('%kernel.project_dir%')]
         private string $projectDir,
         private EntityManagerInterface $entityManager,
-        #[Autowire('%env(API_ASSEMBLEE_URL)%')]
-        private string $apiUrl,
+        private AssembleeUrls $urls,
         private ResilientDownloader $downloader
     ) {}
 
@@ -39,7 +38,7 @@ class AssembleeNationaleImporter
         }
 
         // 1. Téléchargement de l'archive
-        $this->downloader->download($this->apiUrl, $zipPath);
+        $this->downloader->download($this->urls->scrutinsZipUrl(), $zipPath);
 
         // 2. Extraction
         $zip = new ZipArchive();
@@ -80,10 +79,15 @@ class AssembleeNationaleImporter
                 $donneesScrutin = $data['scrutin'];
 
                 // Récupération des infos du texte
+                $uid = $donneesScrutin['uid'] ?? null;
                 $titre = $donneesScrutin['objet']['libelle'] ?? $donneesScrutin['titre'] ?? 'Scrutin sans titre';
 
-                // Anti-doublon
-                $texteExistant = $texteRepository->findOneBy(['titre' => $titre]);
+                // Anti-doublon : priorité à l'identifiant stable du scrutin
+                if ($uid !== null && $uid !== '') {
+                    $texteExistant = $texteRepository->findOneBy(['uidScrutin' => $uid]);
+                } else {
+                    $texteExistant = $texteRepository->findOneBy(['titre' => $titre]);
+                }
                 if ($texteExistant !== null) {
                     continue;
                 }
@@ -91,6 +95,11 @@ class AssembleeNationaleImporter
                 // Création du Texte
                 $texte = new Texte();
                 $texte->setTitre($titre);
+                $texte->setObjet($donneesScrutin['objet']['libelle'] ?? null);
+                $texte->setSynthese($donneesScrutin['objet']['dossierLegislatif']['libelle'] ?? null);
+                $texte->setUidScrutin($uid);
+                $texte->setDossierRef($donneesScrutin['objet']['dossierLegislatif']['dossierRef'] ?? null);
+                $texte->setLien($this->construireLienScrutin($uid));
                 $sort = $donneesScrutin['sort']['libelle'] ?? 'Résultat inconnu';
                 $texte->setDescription('Résultat du vote : ' . $sort);
 
@@ -178,5 +187,19 @@ class AssembleeNationaleImporter
                 $io->writeln("<info>Bilan final : $compteurTextes textes et $compteurVotes votes insérés en base de données.</info>");
             }
         }
+    }
+
+    private function construireLienScrutin(?string $uid): ?string
+    {
+        if ($uid === null || $uid === '') {
+            return null;
+        }
+
+        // uid de la forme VTANR5L17V4008 : le numéro du scrutin y est encodé.
+        if (preg_match('/V(\d+)$/i', $uid, $matches)) {
+            return $this->urls->scrutinUrl($matches[1]);
+        }
+
+        return null;
     }
 }
