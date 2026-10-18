@@ -1,0 +1,29 @@
+{% if pages > 1 %}
+    <nav class="pagination" aria-label="Pagination">
+        {% if page > 1 %}
+            <a class="pagination__link" href="{{ path(route, params|merge({ page: page - 1 })) }}" rel="prev">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+                Précédent
+            </a>
+        {% else %}
+            <span class="pagination__link pagination__link--disabled" aria-disabled="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+                Précédent
+            </span>
+        {% endif %}
+
+        <span class="pagination__status">Page {{ page }} / {{ pages }}</span>
+
+        {% if page < pages %}
+            <a class="pagination__link" href="{{ path(route, params|merge({ page: page + 1 })) }}" rel="next">
+                Suivant
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+            </a>
+        {% else %}
+            <span class="pagination__link pagination__link--disabled" aria-disabled="true">
+                Suivant
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+            </span>
+        {% endif %}
+    </nav>
+{% endif %}

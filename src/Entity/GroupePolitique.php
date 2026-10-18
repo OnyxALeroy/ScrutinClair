@@ -30,6 +30,29 @@ class GroupePolitique
         'NI' => 120,
     ];
 
+    /**
+     * Couleur d'affichage des groupes (17e législature), par acronyme.
+     */
+    private const COULEURS = [
+        'LFI-NFP' => '#cc3344',
+        'GDR' => '#a83232',
+        'ECOS' => '#2f9e44',
+        'SOC' => '#e64980',
+        'LIOT' => '#d9a441',
+        'DEM' => '#f08c00',
+        'EPR' => '#4c6ef5',
+        'HOR' => '#22b8cf',
+        'DR' => '#1c7ed6',
+        'UDDPLR' => '#364fc7',
+        'RN' => '#1a3a6b',
+        'NI' => '#868e96',
+    ];
+
+    public static function couleurPour(?string $acronyme): string
+    {
+        return self::COULEURS[$acronyme ?? ''] ?? '#9ca3af';
+    }
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -56,9 +79,16 @@ class GroupePolitique
     #[ORM\OneToMany(targetEntity: Vote::class, mappedBy: 'groupePolitique')]
     private Collection $votes;
 
+    /**
+     * @var Collection<int, PersonnalitePolitique>
+     */
+    #[ORM\OneToMany(targetEntity: PersonnalitePolitique::class, mappedBy: 'groupePolitique')]
+    private Collection $personnalites;
+
     public function __construct()
     {
         $this->votes = new ArrayCollection();
+        $this->personnalites = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -164,5 +194,42 @@ class GroupePolitique
         }
 
         return $this;
+    }
+
+    /**
+     * @return Collection<int, PersonnalitePolitique>
+     */
+    public function getPersonnalites(): Collection
+    {
+        return $this->personnalites;
+    }
+
+    public function addPersonnalite(PersonnalitePolitique $personnalite): static
+    {
+        if (!$this->personnalites->contains($personnalite)) {
+            $this->personnalites->add($personnalite);
+            $personnalite->setGroupePolitique($this);
+        }
+
+        return $this;
+    }
+
+    public function removePersonnalite(PersonnalitePolitique $personnalite): static
+    {
+        if ($this->personnalites->removeElement($personnalite)) {
+            if ($personnalite->getGroupePolitique() === $this) {
+                $personnalite->setGroupePolitique(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Nom d'affichage du groupe (acronyme s'il existe, sinon libellé complet).
+     */
+    public function getLibelleCourt(): string
+    {
+        return $this->acronyme ?? $this->nom ?? '';
     }
 }

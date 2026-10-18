@@ -1,0 +1,83 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ groupe.acronyme }} — {{ groupe.nom }} — ScrutinClair{% endblock %}
+{% block description %}{{ groupe.nom }} ({{ groupe.acronyme }}) : effectif, votes et membres du groupe à l'Assemblée nationale.{% endblock %}
+
+{% block body %}
+    <a class="backlink" href="{{ path('app_partis') }}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+        Tous les groupes
+    </a>
+
+    <header class="detail-head" style="--groupe-couleur: {{ groupe.couleur }}">
+        <span class="detail-head__chip">{{ groupe.acronyme }}</span>
+        <h1>{{ groupe.nom }}</h1>
+        <p class="detail-head__meta">
+            <span>{{ membres|length }} député{{ membres|length > 1 ? 's' : '' }}</span>
+            <span>·</span>
+            <span>{{ total|number_format(0, ',', ' ') }} scrutin{{ total > 1 ? 's' : '' }} suivis</span>
+        </p>
+    </header>
+
+    <section class="card">
+        <div class="card__head">
+            <span class="card__icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v4h4"></path><path d="M9 12h6"></path><path d="M9 16h6"></path></svg>
+            </span>
+            <h2>Comment le groupe a voté</h2>
+        </div>
+
+        {% if votes %}
+            <ul class="scrutins">
+                {% for vote in votes %}
+                    <li class="scrutin">
+                        <a class="scrutin__titre" href="{{ path('app_texte_show', { id: vote.texteId }) }}">
+                            {{ vote.objet ?? vote.titre }}
+                        </a>
+                        <div class="scrutin__votes" aria-label="Répartition du groupe">
+                            <span class="scrutin__vote scrutin__vote--pour" title="Pour">{{ vote.pour }}</span>
+                            <span class="scrutin__vote scrutin__vote--contre" title="Contre">{{ vote.contre }}</span>
+                            <span class="scrutin__vote scrutin__vote--abstention" title="Abstention">{{ vote.abstention }}</span>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            {{ include('components/_pagination.html.twig', {
+                route: 'app_partis_show',
+                params: { uid: groupe.uid },
+                page: page,
+                pages: pages,
+            }) }}
+        {% else %}
+            <p class="empty-state">Aucun vote enregistré pour ce groupe.</p>
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <div class="card__head">
+            <span class="card__icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20"></path><circle cx="9" cy="8" r="3.2"></circle><path d="M22 20v-1.5a4 4 0 0 0-3-3.85"></path><path d="M16.5 5.1a3.2 3.2 0 0 1 0 5.8"></path></svg>
+            </span>
+            <h2>Les membres</h2>
+        </div>
+
+        {% if membres %}
+            <ul class="member-grid">
+                {% for membre in membres %}
+                    <li>
+                        <a class="member" href="{{ path('app_personnalites_show', { uid: membre.uid }) }}">
+                            {{ include('components/_avatar.html.twig', { personne: membre, classe: 'member__avatar' }) }}
+                            <span class="member__body">
+                                <span class="member__nom">{{ membre.nomComplet }}</span>
+                                {% if membre.circonscription %}<span class="member__meta">{{ membre.circonscription }}</span>{% endif %}
+                            </span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="empty-state">Aucun membre rattaché à ce groupe.</p>
+        {% endif %}
+    </section>
+{% endblock %}

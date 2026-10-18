@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Rechercher un texte — ScrutinClair{% endblock %}
+{% block title %}Rechercher un texte, un parti, un député — ScrutinClair{% endblock %}
 
 {% block body %}
     {% for message in app.flashes('success') %}
@@ -9,13 +9,12 @@
 
     <section class="hero">
         <span class="hero__eyebrow">Assemblée nationale</span>
-        <h1>Comprendre les textes de loi <span class="hero__accent">en clair</span></h1>
-        <p>Retrouvez un scrutin par son objet, son titre ou sa synthèse, et découvrez-en l’essentiel expliqué simplement.</p>
+        <h1>Comprendre la vie parlementaire <span class="hero__accent">en clair</span></h1>
+        <p>Cherchez un texte de loi, un groupe politique ou un député, et découvrez l’essentiel expliqué simplement.</p>
 
         <form class="search" action="{{ path('app_home') }}" method="GET" role="search" autocomplete="off"
-              data-textes-api="{{ path('app_textes_search') }}"
-              data-texte-url-base="{{ path('app_texte_show', { id: '__id__' }) }}">
-            <label class="search__label" for="texte-search">Rechercher parmi les scrutins par objet, titre ou synthèse.</label>
+              data-recherche-api="{{ path('app_recherche') }}">
+            <label class="search__label" for="texte-search">Rechercher un texte, un groupe politique ou un député.</label>
             <div class="search__field">
                 <span class="search__icon" aria-hidden="true">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -24,7 +23,7 @@
                     </svg>
                 </span>
                 <input type="search" id="texte-search" name="q" value="{{ q }}"
-                       placeholder="Ex. projet de loi de finances…"
+                       placeholder="Ex. projet de loi de finances, RN, Maudet…"
                        autocomplete="off" aria-autocomplete="list" aria-controls="texte-suggestions" aria-expanded="false">
                 <button type="submit" class="search__submit" aria-label="Rechercher">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -38,24 +37,72 @@
     </section>
 
     {% if q != '' %}
+        {% set totalResultats = textes|length + groupes|length + personnalites|length %}
+
         <div class="section-title">
             <h2>Résultats</h2>
-            <span>{{ textes|length }} résultat{{ textes|length > 1 ? 's' : '' }} pour « {{ q }} »</span>
+            <span>{{ totalResultats }} résultat{{ totalResultats > 1 ? 's' : '' }} pour « {{ q }} »</span>
         </div>
 
+        {% if totalResultats == 0 %}
+            <p class="empty-state">Aucun résultat ne correspond à «&nbsp;{{ q }}&nbsp;».</p>
+        {% endif %}
+
+        {% if groupes %}
+            <section class="result-bloc" aria-label="Groupes politiques">
+                <h3 class="result-bloc__title">Groupes politiques</h3>
+                <ul class="groupes groupes--compact">
+                    {% for groupe in groupes %}
+                        <li>
+                            <a class="groupe-card" href="{{ path('app_partis_show', { uid: groupe.uid }) }}"
+                               style="--groupe-couleur: {{ groupe.couleur }}">
+                                <span class="groupe-card__chip">{{ groupe.acronyme }}</span>
+                                <span class="groupe-card__nom">{{ groupe.nom }}</span>
+                                <span class="groupe-card__meta">{{ groupe.personnalites|length }} membre{{ groupe.personnalites|length > 1 ? 's' : '' }}</span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </section>
+            </section>
+        {% endif %}
+
+        {% if personnalites %}
+            <section class="result-bloc" aria-label="Personnalités politiques">
+                <h3 class="result-bloc__title">Députés</h3>
+                <ul class="member-grid">
+                    {% for membre in personnalites %}
+                        <li>
+                            <a class="member" href="{{ path('app_personnalites_show', { uid: membre.uid }) }}">
+                                <span class="member__avatar" aria-hidden="true">{{ membre.prenom|first }}{{ membre.nom|first }}</span>
+                                <span class="member__body">
+                                    <span class="member__nom">{{ membre.nomComplet }}</span>
+                                    <span class="member__meta">
+                                        {% if membre.groupePolitique %}{{ membre.groupePolitique.libelleCourt }}{% endif %}
+                                        {% if membre.groupePolitique and membre.circonscription %} · {% endif %}
+                                        {{ membre.circonscription }}
+                                    </span>
+                                </span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
         {% if textes %}
-            <ul class="results">
-                {% for texte in textes %}
-                    <li>
-                        <a href="{{ path('app_texte_show', { id: texte.id }) }}">
-                            <span class="results__titre">{{ texte.objet ?? texte.titre }}</span>
-                            {% if texte.synthese %}<span class="synthese">{{ texte.synthese }}</span>{% endif %}
-                        </a>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p class="empty-state">Aucun texte ne correspond à «&nbsp;{{ q }}&nbsp;».</p>
+            <section class="result-bloc" aria-label="Textes de loi">
+                <h3 class="result-bloc__title">Textes de loi</h3>
+                <ul class="results">
+                    {% for texte in textes %}
+                        <li>
+                            <a href="{{ path('app_texte_show', { id: texte.id }) }}">
+                                <span class="results__titre">{{ texte.objet ?? texte.titre }}</span>
+                                {% if texte.synthese %}<span class="synthese">{{ texte.synthese }}</span>{% endif %}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
         {% endif %}
     {% else %}
         <section class="features" aria-label="Ce que propose ScrutinClair">
@@ -84,20 +131,37 @@
             <article class="feature">
                 <span class="feature__icon" aria-hidden="true">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 3l8 3v6c0 4.5-3.2 7.6-8 9-4.8-1.4-8-4.5-8-9V6z"></path>
-                        <path d="M9 12l2 2 4-4.5"></path>
+                        <path d="M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20"></path>
+                        <circle cx="9" cy="8" r="3.2"></circle>
+                        <path d="M22 20v-1.5a4 4 0 0 0-3-3.85"></path>
+                        <path d="M16.5 5.1a3.2 3.2 0 0 1 0 5.8"></path>
                     </svg>
                 </span>
-                <h3>Sources officielles</h3>
-                <p>Les données proviennent de l’Assemblée nationale, publiées sous Licence Ouverte.</p>
+                <h3>Partis et députés</h3>
+                <p>Explorez les groupes politiques et retrouvez les votes et propositions de chaque député.</p>
             </article>
         </section>
 
-        <div class="import-zone">
-            <form action="{{ path('app_import') }}" method="POST">
-                <button type="submit" class="btn btn--ghost btn--sm">Importer les données</button>
-            </form>
-        </div>
+        <section class="shortcuts" aria-label="Explorer">
+            <a class="shortcut" href="{{ path('app_partis') }}">
+                <span class="shortcut__icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>
+                </span>
+                <span>
+                    <strong>Les groupes politiques</strong>
+                    <small>Effectifs et votes de chaque parti</small>
+                </span>
+            </a>
+            <a class="shortcut" href="{{ path('app_personnalites') }}">
+                <span class="shortcut__icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20"></path><circle cx="9" cy="8" r="3.2"></circle><path d="M22 20v-1.5a4 4 0 0 0-3-3.85"></path><path d="M16.5 5.1a3.2 3.2 0 0 1 0 5.8"></path></svg>
+                </span>
+                <span>
+                    <strong>Les députés</strong>
+                    <small>Votes et propositions de loi</small>
+                </span>
+            </a>
+        </section>
     {% endif %}
 
     <script src="/js/search.js" defer></script>

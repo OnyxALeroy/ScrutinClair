@@ -94,4 +94,18 @@ class TexteRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    /**
+     * @return list<int>
+     */
+    public function findAllIds(): array
+    {
+        $rows = $this->createQueryBuilder('t')
+            ->select('t.id')
+            ->orderBy('t.id', 'ASC')
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(static fn (array $row): int => (int) $row['id'], $rows);
+    }
 }

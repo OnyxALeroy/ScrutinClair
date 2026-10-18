@@ -1,0 +1,17 @@
+{% set total = stats.total > 0 ? stats.total : 1 %}
+<div class="stat-bar">
+    <div class="stat-bar__track" role="img"
+         aria-label="{{ stats.pour }} pour, {{ stats.contre }} contre, {{ stats.abstention }} abstentions">
+        <span class="stat-bar__seg stat-bar__seg--pour" style="width: {{ (stats.pour / total * 100)|round(2) }}%"></span>
+        <span class="stat-bar__seg stat-bar__seg--contre" style="width: {{ (stats.contre / total * 100)|round(2) }}%"></span>
+        <span class="stat-bar__seg stat-bar__seg--abstention" style="width: {{ (stats.abstention / total * 100)|round(2) }}%"></span>
+    </div>
+    <ul class="stat-legend">
+        <li class="stat-legend__item stat-legend__item--pour"><strong>{{ stats.pour|number_format(0, ',', ' ') }}</strong> Pour</li>
+        <li class="stat-legend__item stat-legend__item--contre"><strong>{{ stats.contre|number_format(0, ',', ' ') }}</strong> Contre</li>
+        <li class="stat-legend__item stat-legend__item--abstention"><strong>{{ stats.abstention|number_format(0, ',', ' ') }}</strong> Abstentions</li>
+        {% if stats.total %}
+            <li class="stat-legend__item stat-legend__item--total">{{ stats.total|number_format(0, ',', ' ') }} votes exprimés</li>
+        {% endif %}
+    </ul>
+</div>

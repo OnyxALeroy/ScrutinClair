@@ -1,0 +1,5 @@
+{# Avatar d'une personnalité : initiales en repli, photo officielle par-dessus. #}
+<span class="{{ classe|default('profile-avatar') }}" aria-hidden="true">
+    {{ personne.prenom|first }}{{ personne.nom|first }}
+    <img src="{{ path('app_personnalites_photo', { uid: personne.uid }) }}" alt="" loading="lazy" onerror="this.remove()">
+</span>

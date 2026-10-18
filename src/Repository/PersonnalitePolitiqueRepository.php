@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Entity\GroupePolitique;
 use App\Entity\PersonnalitePolitique;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -16,28 +17,55 @@ class PersonnalitePolitiqueRepository extends ServiceEntityRepository
         parent::__construct($registry, PersonnalitePolitique::class);
     }
 
-//    /**
-//     * @return PersonnalitePolitique[] Returns an array of PersonnalitePolitique objects
-//     */
-//    public function findByExampleField($value): array
-//    {
-//        return $this->createQueryBuilder('p')
-//            ->andWhere('p.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->orderBy('p.id', 'ASC')
-//            ->setMaxResults(10)
-//            ->getQuery()
-//            ->getResult()
-//        ;
-//    }
+    /**
+     * Recherche par nom ou prénom.
+     *
+     * @return PersonnalitePolitique[]
+     */
+    public function search(string $q, int $limit = 20): array
+    {
+        $q = trim($q);
+        if ($q === '') {
+            return [];
+        }
 
-//    public function findOneBySomeField($value): ?PersonnalitePolitique
-//    {
-//        return $this->createQueryBuilder('p')
-//            ->andWhere('p.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->getQuery()
-//            ->getOneOrNullResult()
-//        ;
-//    }
+        return $this->createQueryBuilder('p')
+            ->andWhere('LOWER(p.nom) LIKE LOWER(:q) OR LOWER(p.prenom) LIKE LOWER(:q)')
+            ->setParameter('q', '%' . $q . '%')
+            ->orderBy('p.nom', 'ASC')
+            ->addOrderBy('p.prenom', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Toutes les personnalités, triées par nom.
+     *
+     * @return PersonnalitePolitique[]
+     */
+    public function findAllOrdered(): array
+    {
+        return $this->createQueryBuilder('p')
+            ->orderBy('p.nom', 'ASC')
+            ->addOrderBy('p.prenom', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Membres d'un groupe politique, triés par nom.
+     *
+     * @return PersonnalitePolitique[]
+     */
+    public function findByGroupe(GroupePolitique $groupe): array
+    {
+        return $this->createQueryBuilder('p')
+            ->andWhere('p.groupePolitique = :groupe')
+            ->setParameter('groupe', $groupe)
+            ->orderBy('p.nom', 'ASC')
+            ->addOrderBy('p.prenom', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

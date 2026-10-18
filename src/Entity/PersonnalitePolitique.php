@@ -30,6 +30,21 @@ class PersonnalitePolitique
     #[ORM\Column(length: 255)]
     private ?string $uid = null;
 
+    #[ORM\ManyToOne(inversedBy: 'personnalites')]
+    private ?GroupePolitique $groupePolitique = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $circonscription = null;
+
+    #[ORM\Column(type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $dateNaissance = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $profession = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $fonction = null;
+
     public function __construct()
     {
         $this->votes = new ArrayCollection();
@@ -90,6 +105,71 @@ class PersonnalitePolitique
                 $vote->setPersonalite(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getNomComplet(): string
+    {
+        return trim(($this->prenom ?? '') . ' ' . ($this->nom ?? ''));
+    }
+
+    public function getGroupePolitique(): ?GroupePolitique
+    {
+        return $this->groupePolitique;
+    }
+
+    public function setGroupePolitique(?GroupePolitique $groupePolitique): static
+    {
+        $this->groupePolitique = $groupePolitique;
+
+        return $this;
+    }
+
+    public function getCirconscription(): ?string
+    {
+        return $this->circonscription;
+    }
+
+    public function setCirconscription(?string $circonscription): static
+    {
+        $this->circonscription = $circonscription;
+
+        return $this;
+    }
+
+    public function getDateNaissance(): ?\DateTimeImmutable
+    {
+        return $this->dateNaissance;
+    }
+
+    public function setDateNaissance(?\DateTimeImmutable $dateNaissance): static
+    {
+        $this->dateNaissance = $dateNaissance;
+
+        return $this;
+    }
+
+    public function getProfession(): ?string
+    {
+        return $this->profession;
+    }
+
+    public function setProfession(?string $profession): static
+    {
+        $this->profession = $profession;
+
+        return $this;
+    }
+
+    public function getFonction(): ?string
+    {
+        return $this->fonction;
+    }
+
+    public function setFonction(?string $fonction): static
+    {
+        $this->fonction = $fonction;
 
         return $this;
     }

@@ -5,6 +5,13 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}ScrutinClair{% endblock %}</title>
         <meta name="description" content="{% block description %}Comprendre les textes et scrutins de l'Assemblée nationale, en clair.{% endblock %}">
+        <meta property="og:site_name" content="ScrutinClair">
+        <meta property="og:type" content="website">
+        <meta property="og:title" content="{{ block('title') }}">
+        <meta property="og:description" content="{{ block('description') }}">
+        <meta name="twitter:card" content="summary">
+        <link rel="canonical" href="{{ app.request.schemeAndHttpHost ~ app.request.pathInfo }}">
+        {% block canonical %}{% endblock %}
         <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
         <meta name="theme-color" content="#0a0f1e" media="(prefers-color-scheme: dark)">
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%234f46e5%22/><path d=%22M9 17l5 5 9-11%22 fill=%22none%22 stroke=%22white%22 stroke-width=%223%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/></svg>">
@@ -43,6 +50,23 @@
                             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                         </svg>
                         Rechercher
+                    </a>
+                    <a href="{{ path('app_partis') }}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M3 21h18"></path>
+                            <path d="M5 21V7l7-4 7 4v14"></path>
+                            <path d="M9 21v-6h6v6"></path>
+                        </svg>
+                        Partis
+                    </a>
+                    <a href="{{ path('app_personnalites') }}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20"></path>
+                            <circle cx="9" cy="8" r="3.2"></circle>
+                            <path d="M22 20v-1.5a4 4 0 0 0-3-3.85"></path>
+                            <path d="M16.5 5.1a3.2 3.2 0 0 1 0 5.8"></path>
+                        </svg>
+                        Députés
                     </a>
                 </nav>
             </div>

@@ -16,28 +16,38 @@ class GroupePolitiqueRepository extends ServiceEntityRepository
         parent::__construct($registry, GroupePolitique::class);
     }
 
-//    /**
-//     * @return GroupePolitique[] Returns an array of GroupePolitique objects
-//     */
-//    public function findByExampleField($value): array
-//    {
-//        return $this->createQueryBuilder('g')
-//            ->andWhere('g.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->orderBy('g.id', 'ASC')
-//            ->setMaxResults(10)
-//            ->getQuery()
-//            ->getResult()
-//        ;
-//    }
+    /**
+     * Recherche par nom ou acronyme.
+     *
+     * @return GroupePolitique[]
+     */
+    public function search(string $q, int $limit = 20): array
+    {
+        $q = trim($q);
+        if ($q === '') {
+            return [];
+        }
 
-//    public function findOneBySomeField($value): ?GroupePolitique
-//    {
-//        return $this->createQueryBuilder('g')
-//            ->andWhere('g.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->getQuery()
-//            ->getOneOrNullResult()
-//        ;
-//    }
+        return $this->createQueryBuilder('g')
+            ->andWhere('LOWER(g.nom) LIKE LOWER(:q) OR LOWER(g.acronyme) LIKE LOWER(:q)')
+            ->setParameter('q', '%' . $q . '%')
+            ->orderBy('g.ordre', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Tous les groupes, de la gauche vers la droite de l'hémicycle.
+     *
+     * @return GroupePolitique[]
+     */
+    public function findAllOrdered(): array
+    {
+        return $this->createQueryBuilder('g')
+            ->orderBy('g.ordre', 'ASC')
+            ->addOrderBy('g.acronyme', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

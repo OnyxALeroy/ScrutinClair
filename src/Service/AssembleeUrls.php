@@ -72,6 +72,13 @@ final class AssembleeUrls
         return sprintf('%s/dyn/opendata/%s.html', $this->site, $uid);
     }
 
+    public function photoUrl(string $uid): string
+    {
+        $numero = preg_replace('/\D/', '', $uid);
+
+        return sprintf('%s/dyn/static/tribun/%d/photos/carre/%s.jpg', $this->site, $this->legislature, $numero);
+    }
+
     public function amendementPageUrl(string $texteNumero, string $chambre, int|string $numero): string
     {
         return sprintf(
