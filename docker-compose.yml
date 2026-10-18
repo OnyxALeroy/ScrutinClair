@@ -35,6 +35,20 @@ services:
     networks:
       - scrutinclair-network
 
+  scrutinclair-ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - scrutinclair-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
 ###> doctrine/doctrine-bundle ###
   database:
     image: postgres:${POSTGRES_VERSION:-16}-alpine
@@ -60,6 +74,7 @@ volumes:
   database_data:
 ###< doctrine/doctrine-bundle ###
   db-data:
+  ollama-models:
 
 networks:
   scrutinclair-network:

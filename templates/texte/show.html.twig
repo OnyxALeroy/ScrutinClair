@@ -1,16 +1,11 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ texte.objet ?? texte.titre }} - ScrutinClair{% endblock %}
+{% block title %}{{ texte.objet ?? texte.titre }} — ScrutinClair{% endblock %}
 
 {% block body %}
-<style>
-    .example-wrapper { margin: 1em auto; max-width: 800px; width: 95%; font: 18px/1.5 sans-serif; }
-    .example-wrapper code { background: #F5F5F5; padding: 2px 6px; }
-</style>
-
-<div class="example-wrapper">
-    <p><a href="{{ path('app_home') }}">&larr; Nouvelle recherche</a></p>
+    <a class="backlink" href="{{ path('app_home') }}">
+        <span aria-hidden="true">&larr;</span> Nouvelle recherche
+    </a>
 
     {% include 'texte/_detail.html.twig' with { texte: texte } %}
-</div>
 {% endblock %}

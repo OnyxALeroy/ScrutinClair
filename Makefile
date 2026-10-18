@@ -1,10 +1,14 @@
-.PHONY: help init up down restart shell db-shell diff migrate db-reset cache import
+.PHONY: help init up down restart shell db-shell diff migrate db-reset cache import import-scrutins import-personnalites ai-up ai-status vulgarise vulgarise-dry vulgarise-limit vulgarise-status clean
 
 # Variables pour éviter de répéter les noms
 PHP = scrutinclair-php
 DB = scrutinclair-database
 DB_USER = app
 DB_NAME = app
+OLLAMA = scrutinclair-ollama
+MODEL ?= qwen2.5:7b-instruct
+N ?= 100
+VULG_OPTS ?=
 
 # Affiche la liste des commandes disponibles par défaut
 help:
@@ -54,7 +58,27 @@ import-scrutins: ## Lance l'importation de l'Assemblée avec 1Go de RAM
 import-personnalites: ## Lance l'importation des personnalités politiques avec 1Go de RAM
 	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-personnalites --no-debug
 
+## --- IA / Vulgarisation ---
+ai-up: ## Démarre Ollama et récupère le modèle
+	docker compose up -d $(OLLAMA)
+	docker compose exec $(OLLAMA) ollama pull $(MODEL)
+
+ai-status: ## Liste les modèles Ollama chargés
+	docker compose exec $(OLLAMA) ollama list
+
+vulgarise-dry: ## Résout les sources SANS appeler l'IA (mesure la couverture)
+	docker compose exec $(PHP) php -d memory_limit=2G bin/console app:vulgariser --dry-run --no-debug
+
+vulgarise: ## Lance la vulgarisation complète (reprise automatique)
+	docker compose exec $(PHP) php -d memory_limit=2G bin/console app:vulgariser $(VULG_OPTS) --no-debug
+
+vulgarise-limit: ## Vulgarise N textes seulement (ex. make vulgarise-limit N=200)
+	docker compose exec $(PHP) php -d memory_limit=2G bin/console app:vulgariser --limit=$(N) --no-debug
+
+vulgarise-status: ## Affiche l'avancement de la vulgarisation (compteurs par statut)
+	docker compose exec $(PHP) bin/console app:vulgariser --status
+
 ## --- Utils ---
-clean: ## Supprime les archives téléchargées et vide le cache Symfony
+clean: ## Supprime les archives téléchargées et vide le cache Symfony (elles seront re-téléchargées)
 	rm -rf data/
 	docker compose exec scrutinclair-php bin/console cache:clear

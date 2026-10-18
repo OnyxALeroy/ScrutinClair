@@ -81,6 +81,25 @@ final class TexteControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testShowDisplaysVulgarisationWhenSet(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $token = bin2hex(random_bytes(6));
+        $texte = $this->createTexte($em, $token);
+        $texte->setVulgarisation("Premier paragraphe $token.\n\nSecond paragraphe $token.");
+        $texte->setVulgarisationStatut('ok');
+        $em->flush();
+        $this->texteId = $texte->getId();
+
+        $client->request('GET', '/textes/' . $this->texteId);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h2', 'En clair');
+        self::assertSelectorTextContains('.vulgarisation p', 'Premier paragraphe ' . $token . '.');
+    }
+
     private function createTexte(EntityManagerInterface $em, string $token): Texte
     {
         $texte = new Texte();

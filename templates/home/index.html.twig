@@ -1,83 +1,61 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Recherche - ScrutinClair{% endblock %}
+{% block title %}Rechercher un texte — ScrutinClair{% endblock %}
 
 {% block body %}
-<style>
-    .example-wrapper { margin: 1em auto; max-width: 800px; width: 95%; font: 18px/1.5 sans-serif; }
-    .example-wrapper code { background: #F5F5F5; padding: 2px 6px; }
-
-    .search { position: relative; margin: 1.5rem 0; }
-    .search input[type="search"] {
-        width: 100%; box-sizing: border-box; padding: 0.75rem 1rem; font-size: 1rem;
-        border: 1px solid #cbd5e1; border-radius: 6px;
-    }
-    .search ul {
-        list-style: none; margin: 0; padding: 0; position: absolute; z-index: 10;
-        left: 0; right: 0; background: #fff; border: 1px solid #cbd5e1; border-top: none;
-        border-radius: 0 0 6px 6px; max-height: 360px; overflow-y: auto; box-shadow: 0 6px 12px rgba(0,0,0,.08);
-    }
-    .search ul:empty { display: none; }
-    .search li { margin: 0; }
-    .search li a {
-        display: block; padding: 0.6rem 1rem; color: #1f2937; text-decoration: none;
-        border-bottom: 1px solid #f1f5f9;
-    }
-    .search li:last-child a { border-bottom: none; }
-    .search li a:hover, .search li a.active { background: #f1f5f9; }
-    .search li .synthese { display: block; font-size: 0.85em; color: #64748b; }
-
-    .results { list-style: none; padding: 0; }
-    .results li { padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9; }
-    .results a { text-decoration: none; }
-</style>
-
-<div class="example-wrapper">
-    {# Affichage des messages flash (ex: succès de l'import) #}
     {% for message in app.flashes('success') %}
-        <div style="background-color: #d4edda; color: #155724; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;">
-            {{ message }}
-        </div>
+        <div class="flash flash--success">{{ message }}</div>
     {% endfor %}
 
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>Rechercher un texte de l'Assemblée</h1>
+    <section class="hero">
+        <span class="hero__eyebrow">Assemblée nationale</span>
+        <h1>Rechercher un texte de loi</h1>
+        <p>Retrouvez un scrutin par son objet, son titre ou sa synthèse, et découvrez-en l’essentiel expliqué simplement.</p>
 
-        {# Le bouton d'import #}
-        <form action="{{ path('app_import') }}" method="POST">
-            <button type="submit" style="padding: 0.5rem 1rem; background: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                Importer les données
-            </button>
+        <form class="search" action="{{ path('app_home') }}" method="GET" role="search" autocomplete="off"
+              data-textes-api="{{ path('app_textes_search') }}"
+              data-texte-url-base="{{ path('app_texte_show', { id: '__id__' }) }}">
+            <label class="search__label" for="texte-search">Rechercher parmi les scrutins par objet, titre ou synthèse.</label>
+            <div class="search__field">
+                <span class="search__icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </span>
+                <input type="search" id="texte-search" name="q" value="{{ q }}"
+                       placeholder="Ex. projet de loi de finances…"
+                       autocomplete="off" aria-autocomplete="list" aria-controls="texte-suggestions" aria-expanded="false">
+            </div>
+            <ul id="texte-suggestions" class="search__list" role="listbox"></ul>
         </form>
-    </div>
 
-    <form class="search" action="{{ path('app_home') }}" method="GET" role="search" autocomplete="off"
-          data-textes-api="{{ path('app_textes_search') }}"
-          data-texte-url-base="{{ path('app_texte_show', { id: '__id__' }) }}">
-        <label for="texte-search" style="display:block; margin-bottom:0.5rem;">
-            Recherchez parmi les scrutins par objet, titre ou synthèse.
-        </label>
-        <input type="search" id="texte-search" name="q" value="{{ q }}" placeholder="Ex. projet de loi de finances..."
-               autocomplete="off" aria-autocomplete="list" aria-controls="texte-suggestions" aria-expanded="false">
-        <ul id="texte-suggestions" role="listbox"></ul>
-    </form>
+        <form action="{{ path('app_import') }}" method="POST">
+            <button type="submit" class="btn btn--ghost">Importer les données</button>
+        </form>
+    </section>
 
-    {# Repli sans JavaScript : liste des résultats renvoyée par le serveur #}
     {% if q != '' %}
+        <div class="section-title">
+            <h2>Résultats</h2>
+            <span>{{ textes|length }} résultat{{ textes|length > 1 ? 's' : '' }} pour « {{ q }} »</span>
+        </div>
+
         {% if textes %}
             <ul class="results">
                 {% for texte in textes %}
                     <li>
-                        <a href="{{ path('app_texte_show', { id: texte.id }) }}">{{ texte.objet ?? texte.titre }}</a>
-                        {% if texte.synthese %}<div class="synthese" style="color:#64748b; font-size:0.85em;">{{ texte.synthese }}</div>{% endif %}
+                        <a href="{{ path('app_texte_show', { id: texte.id }) }}">
+                            <span class="results__titre">{{ texte.objet ?? texte.titre }}</span>
+                            {% if texte.synthese %}<span class="synthese">{{ texte.synthese }}</span>{% endif %}
+                        </a>
                     </li>
                 {% endfor %}
             </ul>
         {% else %}
-            <p>Aucun texte ne correspond à « {{ q }} ».</p>
+            <p class="empty-state">Aucun texte ne correspond à «&nbsp;{{ q }}&nbsp;».</p>
         {% endif %}
     {% endif %}
-</div>
 
-<script src="/js/search.js" defer></script>
+    <script src="/js/search.js" defer></script>
 {% endblock %}

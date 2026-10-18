@@ -1,52 +1,38 @@
 {% set data = texte.hemicyclePolitique %}
 
 {% if data.total > 0 %}
-    <div style="margin: 2rem auto; font-family: sans-serif; max-width: 600px;">
-        
+    <div class="hemicycle-block">
         {# Hémicycle #}
-        <div style="position: relative; width: 400px; height: 200px; margin: 0 auto; overflow: hidden;">
-            {# 1. Anneau Extérieur : Les Partis #}
-            <div style="
-                position: absolute; top: 0; left: 0; right: 0; bottom: -200px; 
-                border-radius: 50%;
-                background: conic-gradient(from 270deg at 50% 50%, {{ data.css_partis }}, transparent 180deg);
-            "></div>
-            
-            {# 2. Anneau Intérieur : Les Votes #}
-            <div style="
-                position: absolute; top: 30px; left: 30px; right: 30px; bottom: -170px; 
-                border-radius: 50%;
-                background: conic-gradient(from 270deg at 50% 50%, {{ data.css_votes }}, transparent 180deg);
-            "></div>
+        <div class="hemicycle" role="img" aria-label="Répartition des votes par groupe politique">
+            {# 1. Anneau extérieur : les partis #}
+            <div class="hemicycle__ring" style="background: conic-gradient(from 270deg at 50% 50%, {{ data.css_partis }}, transparent 180deg);"></div>
 
-            {# 3. Le centre vide (Trou) #}
-            <div style="
-                position: absolute; top: 70px; left: 70px; right: 70px; bottom: -130px;
-                border-radius: 50%;
-                background-color: #ffffff;
-                display: flex; align-items: flex-end; justify-content: center;
-                padding-bottom: 10px;
-            ">
-                <div style="text-align: center;">
-                    <span style="font-size: 2em; font-weight: bold; color: #333;">{{ data.total }}</span><br>
-                    <span style="font-size: 0.8em; color: #666; text-transform: uppercase;">Votants</span>
-                </div>
+            {# 2. Anneau intérieur : les votes #}
+            <div class="hemicycle__inner" style="background: conic-gradient(from 270deg at 50% 50%, {{ data.css_votes }}, transparent 180deg);"></div>
+
+            {# 3. Le centre (trou) #}
+            <div class="hemicycle__hole"></div>
+
+            <div class="hemicycle__total">
+                <strong>{{ data.total }}</strong>
+                <span>Votants</span>
             </div>
         </div>
 
-        {# Légende détaillée par Parti #}
-        <div style="margin-top: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px;">
+        {# Légende détaillée par parti #}
+        <div class="hemicycle-legend">
             {% for groupe in data.details %}
-                <div style="border-left: 4px solid {{ groupe.couleur }}; padding-left: 10px; font-size: 0.9em;">
-                    <strong>{{ groupe.nom }}</strong><br>
-                    {% if groupe.Pour > 0 %}<span style="color: #22c55e;">✔ {{ groupe.Pour }}</span> {% endif %}
-                    {% if groupe.Contre > 0 %}<span style="color: #ef4444;">✘ {{ groupe.Contre }}</span> {% endif %}
-                    {% if groupe.Abstention > 0 %}<span style="color: #9ca3af;">— {{ groupe.Abstention }}</span>{% endif %}
+                <div class="hemicycle-legend__item" style="border-left-color: {{ groupe.couleur }};">
+                    <span class="hemicycle-legend__nom">{{ groupe.nom }}</span>
+                    <span class="hemicycle-legend__votes">
+                        {% if groupe.Pour > 0 %}<span class="legend-pour">✔ {{ groupe.Pour }}</span>{% endif %}
+                        {% if groupe.Contre > 0 %}<span class="legend-contre">✘ {{ groupe.Contre }}</span>{% endif %}
+                        {% if groupe.Abstention > 0 %}<span class="legend-abstention">— {{ groupe.Abstention }}</span>{% endif %}
+                    </span>
                 </div>
             {% endfor %}
         </div>
-
     </div>
 {% else %}
-    <p>Aucun vote enregistré pour ce texte.</p>
+    <p class="empty-state">Aucun vote enregistré pour ce texte.</p>
 {% endif %}

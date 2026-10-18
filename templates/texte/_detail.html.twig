@@ -1,30 +1,72 @@
 {% if texte %}
-    <h1>{{ texte.objet ?? texte.titre }}</h1>
-    {% if texte.synthese %}
-        <p>{{ texte.synthese }}</p>
-    {% endif %}
-    {% if texte.description %}
-        <p><em>{{ texte.description }}</em></p>
-    {% endif %}
-    {% if texte.lien %}
-        <p><a href="{{ texte.lien }}" target="_blank" rel="noopener noreferrer">Voir le scrutin sur l’Assemblée nationale</a></p>
-    {% endif %}
+    {% set objetBas = (texte.objet ?? texte.titre ?? '')|lower %}
 
-    <h2>Résultat des votes</h2>
+    <article>
+        <header class="texte-header">
+            <h1>{{ texte.objet ?? texte.titre }}</h1>
 
-    {{ include('components/_hemicycle.html.twig', { texte: texte }) }}
+            <div class="badges">
+                <span class="badge badge--type">{{ 'amendement' in objetBas ? 'Amendement' : 'Texte de loi' }}</span>
+                {% if texte.vulgarisation %}<span class="badge badge--ai">Vulgarisé par IA</span>{% endif %}
+            </div>
 
-    <ul>
-        {# La magie de l'ORM : texte.votes va chercher les données dans la table Vote #}
-        {% for vote in texte.votes %}
-            <li>
-                <strong>{{ vote.personalite.prenom }} {{ vote.personalite.nom }}</strong> :
-                {{ vote.statut }}
-            </li>
-        {% else %}
-            <li>Aucun vote enregistré.</li>
-        {% endfor %}
-    </ul>
+            {% if texte.synthese %}
+                <p class="lead">{{ texte.synthese }}</p>
+            {% endif %}
+            {% if texte.description %}
+                <p class="lead"><em>{{ texte.description }}</em></p>
+            {% endif %}
+            {% if texte.lien %}
+                <p>
+                    <a class="source-link" href="{{ texte.lien }}" target="_blank" rel="noopener noreferrer">
+                        Consulter le scrutin sur l’Assemblée nationale
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M8 7h9v9"></path></svg>
+                    </a>
+                </p>
+            {% endif %}
+        </header>
+
+        {% if texte.vulgarisation %}
+            <section class="vulgarisation" aria-labelledby="titre-vulgarisation">
+                <div class="vulgarisation__header">
+                    <h2 id="titre-vulgarisation">En clair</h2>
+                    <span class="badge badge--ai">Simplifié</span>
+                </div>
+                {% for paragraphe in texte.vulgarisation|split("\n\n") %}
+                    {% set bloc = paragraphe|trim|replace({'**': ''}) %}
+                    {% if bloc %}
+                        {% if bloc starts with '#' %}
+                            <h3>{{ bloc|replace({'#': ''})|trim }}</h3>
+                        {% else %}
+                            <p>{{ bloc }}</p>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+                <p class="ia-note">Résumé vulgarisé généré automatiquement par une intelligence artificielle. Il peut comporter des imprécisions : seul le texte officiel fait foi.</p>
+            </section>
+        {% endif %}
+
+        <section class="card">
+            <h2>Résultat des votes</h2>
+            {{ include('components/_hemicycle.html.twig', { texte: texte }) }}
+        </section>
+
+        <section class="card">
+            <h2>Votes des députés</h2>
+            <div class="votes-scroll">
+                <ul class="votes">
+                    {% for vote in texte.votes %}
+                        <li class="vote vote--{{ vote.statut|lower }}">
+                            <span class="vote__nom">{{ vote.personalite ? vote.personalite.prenom ~ ' ' ~ vote.personalite.nom : 'Député non renseigné' }}</span>
+                            <span class="vote__statut">{{ vote.statut }}</span>
+                        </li>
+                    {% else %}
+                        <li class="vote__empty">Aucun vote enregistré.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+    </article>
 {% else %}
-    <p>Aucun texte trouvé en base de données.</p>
+    <div class="empty-state">Aucun texte trouvé en base de données.</div>
 {% endif %}

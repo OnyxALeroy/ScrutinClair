@@ -37,6 +37,18 @@ class Texte
     #[ORM\Column(length: 20, nullable: true, unique: true)]
     private ?string $uidScrutin = null;
 
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $vulgarisation = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $vulgarisationSource = null;
+
+    #[ORM\Column(type: 'datetimetz_immutable', nullable: true)]
+    private ?\DateTimeImmutable $vulgarisationAt = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $vulgarisationStatut = null;
+
     /**
      * @var Collection<int, Vote>
      */
@@ -133,6 +145,54 @@ class Texte
     public function setUidScrutin(?string $uidScrutin): static
     {
         $this->uidScrutin = $uidScrutin;
+
+        return $this;
+    }
+
+    public function getVulgarisation(): ?string
+    {
+        return $this->vulgarisation;
+    }
+
+    public function setVulgarisation(?string $vulgarisation): static
+    {
+        $this->vulgarisation = $vulgarisation;
+
+        return $this;
+    }
+
+    public function getVulgarisationSource(): ?string
+    {
+        return $this->vulgarisationSource;
+    }
+
+    public function setVulgarisationSource(?string $vulgarisationSource): static
+    {
+        $this->vulgarisationSource = $vulgarisationSource;
+
+        return $this;
+    }
+
+    public function getVulgarisationAt(): ?\DateTimeImmutable
+    {
+        return $this->vulgarisationAt;
+    }
+
+    public function setVulgarisationAt(?\DateTimeImmutable $vulgarisationAt): static
+    {
+        $this->vulgarisationAt = $vulgarisationAt;
+
+        return $this;
+    }
+
+    public function getVulgarisationStatut(): ?string
+    {
+        return $this->vulgarisationStatut;
+    }
+
+    public function setVulgarisationStatut(?string $vulgarisationStatut): static
+    {
+        $this->vulgarisationStatut = $vulgarisationStatut;
 
         return $this;
     }

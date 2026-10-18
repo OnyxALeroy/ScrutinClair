@@ -1,0 +1,7 @@
+framework:
+    http_client:
+        scoped_clients:
+            ollama.client:
+                base_uri: '%env(OLLAMA_URL)%'
+                timeout: 600
+                max_duration: 0
