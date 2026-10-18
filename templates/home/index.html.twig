@@ -9,7 +9,7 @@
 
     <section class="hero">
         <span class="hero__eyebrow">Assemblée nationale</span>
-        <h1>Rechercher un texte de loi</h1>
+        <h1>Comprendre les textes de loi <span class="hero__accent">en clair</span></h1>
         <p>Retrouvez un scrutin par son objet, son titre ou sa synthèse, et découvrez-en l’essentiel expliqué simplement.</p>
 
         <form class="search" action="{{ path('app_home') }}" method="GET" role="search" autocomplete="off"
@@ -26,12 +26,14 @@
                 <input type="search" id="texte-search" name="q" value="{{ q }}"
                        placeholder="Ex. projet de loi de finances…"
                        autocomplete="off" aria-autocomplete="list" aria-controls="texte-suggestions" aria-expanded="false">
+                <button type="submit" class="search__submit" aria-label="Rechercher">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M5 12h14"></path>
+                        <path d="M13 6l6 6-6 6"></path>
+                    </svg>
+                </button>
             </div>
             <ul id="texte-suggestions" class="search__list" role="listbox"></ul>
-        </form>
-
-        <form action="{{ path('app_import') }}" method="POST">
-            <button type="submit" class="btn btn--ghost">Importer les données</button>
         </form>
     </section>
 
@@ -55,6 +57,47 @@
         {% else %}
             <p class="empty-state">Aucun texte ne correspond à «&nbsp;{{ q }}&nbsp;».</p>
         {% endif %}
+    {% else %}
+        <section class="features" aria-label="Ce que propose ScrutinClair">
+            <article class="feature">
+                <span class="feature__icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6z"></path>
+                        <path d="M18 16l.9 2.1L21 19l-2.1.9L18 22l-1-2.1L15 19l2-.9z"></path>
+                    </svg>
+                </span>
+                <h3>Expliqué simplement</h3>
+                <p>Chaque texte est résumé en clair, à partir du contenu officiel, pour aller à l’essentiel.</p>
+            </article>
+            <article class="feature">
+                <span class="feature__icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 20a8 8 0 0 1 16 0"></path>
+                        <path d="M12 12v-4"></path>
+                        <path d="M9 20v-4"></path>
+                        <path d="M15 20v-4"></path>
+                    </svg>
+                </span>
+                <h3>Les votes en un coup d’œil</h3>
+                <p>Un hémicycle interactif montre la répartition des voix, groupe par groupe.</p>
+            </article>
+            <article class="feature">
+                <span class="feature__icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3l8 3v6c0 4.5-3.2 7.6-8 9-4.8-1.4-8-4.5-8-9V6z"></path>
+                        <path d="M9 12l2 2 4-4.5"></path>
+                    </svg>
+                </span>
+                <h3>Sources officielles</h3>
+                <p>Les données proviennent de l’Assemblée nationale, publiées sous Licence Ouverte.</p>
+            </article>
+        </section>
+
+        <div class="import-zone">
+            <form action="{{ path('app_import') }}" method="POST">
+                <button type="submit" class="btn btn--ghost btn--sm">Importer les données</button>
+            </form>
+        </div>
     {% endif %}
 
     <script src="/js/search.js" defer></script>

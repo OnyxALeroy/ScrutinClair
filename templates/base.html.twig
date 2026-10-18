@@ -5,7 +5,14 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}ScrutinClair{% endblock %}</title>
         <meta name="description" content="{% block description %}Comprendre les textes et scrutins de l'Assemblée nationale, en clair.{% endblock %}">
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%231d4ed8%22/><path d=%22M9 17l5 5 9-11%22 fill=%22none%22 stroke=%22white%22 stroke-width=%223%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/></svg>">
+        <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+        <meta name="theme-color" content="#0a0f1e" media="(prefers-color-scheme: dark)">
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%234f46e5%22/><path d=%22M9 17l5 5 9-11%22 fill=%22none%22 stroke=%22white%22 stroke-width=%223%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/></svg>">
+
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+
         <link rel="stylesheet" href="/css/app.css">
         {% block stylesheets %}{% endblock %}
 
@@ -22,11 +29,21 @@
         <header class="site-header">
             <div class="site-header__inner">
                 <a class="brand" href="{{ path('app_home') }}">
-                    <span class="brand__mark" aria-hidden="true">✓</span>
+                    <span class="brand__mark" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 12.5l5 5L20 6.5"></path>
+                        </svg>
+                    </span>
                     Scrutin<span class="brand__accent">Clair</span>
                 </a>
                 <nav class="site-nav" aria-label="Navigation principale">
-                    <a href="{{ path('app_home') }}">Rechercher</a>
+                    <a href="{{ path('app_home') }}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="11" cy="11" r="7"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        Rechercher
+                    </a>
                 </nav>
             </div>
         </header>
@@ -37,8 +54,18 @@
 
         <footer class="site-footer">
             <div class="site-footer__inner">
-                <span>ScrutinClair — la vie parlementaire expliquée simplement.</span>
-                <span>Données : Assemblée nationale (Licence Ouverte).</span>
+                <span class="site-footer__brand">
+                    <span class="brand__mark" aria-hidden="true">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 12.5l5 5L20 6.5"></path>
+                        </svg>
+                    </span>
+                    ScrutinClair — la vie parlementaire expliquée simplement.
+                </span>
+                <span class="site-footer__credit">
+                    <span>Données : Assemblée nationale (Licence Ouverte)</span>
+                    <span>Résumés générés par IA — le texte officiel fait foi.</span>
+                </span>
             </div>
         </footer>
     </body>
