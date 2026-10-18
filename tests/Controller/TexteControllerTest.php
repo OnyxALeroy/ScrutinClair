@@ -88,7 +88,13 @@ final class TexteControllerTest extends WebTestCase
 
         $token = bin2hex(random_bytes(6));
         $texte = $this->createTexte($em, $token);
-        $texte->setVulgarisation("Premier paragraphe $token.\n\nSecond paragraphe $token.");
+        $texte->setVulgarisation(
+            "### Première partie\n\n"
+            ."Un paragraphe avec du **gras $token**.\n\n"
+            ."- un premier point $token\n"
+            ."- un second point\n\n"
+            ."<script>alert('xss')</script>",
+        );
         $texte->setVulgarisationStatut('ok');
         $em->flush();
         $this->texteId = $texte->getId();
@@ -97,7 +103,11 @@ final class TexteControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h2', 'En clair');
-        self::assertSelectorTextContains('.vulgarisation p', 'Premier paragraphe ' . $token . '.');
+        self::assertSelectorTextContains('.vulgarisation__body h3', 'Première partie');
+        self::assertSelectorTextContains('.vulgarisation__body p', 'Un paragraphe avec du gras ' . $token . '.');
+        self::assertSelectorExists('.vulgarisation__body strong');
+        self::assertSelectorTextContains('.vulgarisation__body li', 'un premier point ' . $token);
+        self::assertSelectorNotExists('.vulgarisation__body script');
     }
 
     private function createTexte(EntityManagerInterface $em, string $token): Texte

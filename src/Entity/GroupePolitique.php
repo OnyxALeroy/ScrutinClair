@@ -10,6 +10,26 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: GroupePolitiqueRepository::class)]
 class GroupePolitique
 {
+    /**
+     * Position des groupes de l'Assemblée nationale sur l'axe gauche-droite
+     * (17e législature). Sert à ordonner les groupes sur l'hémicycle : de la
+     * gauche du diagramme (petites valeurs) vers sa droite (grandes valeurs).
+     */
+    private const POSITIONS_POLITIQUES = [
+        'LFI-NFP' => 10,
+        'GDR' => 20,
+        'ECOS' => 30,
+        'SOC' => 40,
+        'LIOT' => 50,
+        'DEM' => 60,
+        'EPR' => 70,
+        'HOR' => 80,
+        'DR' => 90,
+        'UDDPLR' => 100,
+        'RN' => 110,
+        'NI' => 120,
+    ];
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -104,6 +124,16 @@ class GroupePolitique
         $this->ordre = $ordre;
 
         return $this;
+    }
+
+    /**
+     * Rang du groupe sur l'axe gauche-droite. Les groupes politiques connus
+     * sont classés explicitement ; à défaut on retombe sur la colonne `ordre`
+     * puis, en dernier recours, tout à droite du diagramme.
+     */
+    public function getPositionPolitique(): int
+    {
+        return self::POSITIONS_POLITIQUES[$this->acronyme ?? ''] ?? ($this->ordre ?? 999);
     }
 
     /**

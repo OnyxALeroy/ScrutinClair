@@ -2,6 +2,10 @@
 
 {% block title %}{{ texte.objet ?? texte.titre }} — ScrutinClair{% endblock %}
 
+{% block javascripts %}
+    <script src="/js/hemicycle.js" defer></script>
+{% endblock %}
+
 {% block body %}
     <a class="backlink" href="{{ path('app_home') }}">
         <span aria-hidden="true">&larr;</span> Nouvelle recherche

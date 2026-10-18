@@ -2,36 +2,37 @@
 
 {% if data.total > 0 %}
     <div class="hemicycle-block">
-        {# Hémicycle #}
-        <div class="hemicycle" role="img" aria-label="Répartition des votes par groupe politique">
-            {# 1. Anneau extérieur : les partis #}
-            <div class="hemicycle__ring" style="background: conic-gradient(from 270deg at 50% 50%, {{ data.css_partis }}, transparent 180deg);"></div>
-
-            {# 2. Anneau intérieur : les votes #}
-            <div class="hemicycle__inner" style="background: conic-gradient(from 270deg at 50% 50%, {{ data.css_votes }}, transparent 180deg);"></div>
-
-            {# 3. Le centre (trou) #}
-            <div class="hemicycle__hole"></div>
+        <div class="hemicycle" data-hemicycle>
+            <svg class="hemicycle__svg" viewBox="0 0 400 205" role="img"
+                 aria-label="Répartition des votes par groupe politique">
+                {% for groupe in data.groupes %}
+                    <g class="hemicycle__groupe"
+                       data-parti="{{ groupe.nom }}"
+                       data-parti-complet="{{ data.groupes[loop.index0].nom_complet }}"
+                       data-pour="{{ groupe.pour }}"
+                       data-contre="{{ groupe.contre }}"
+                       data-abstention="{{ groupe.abstention }}"
+                       data-total="{{ data.groupes[loop.index0].total }}">
+                        {% for segment in data.groupes[loop.index0].segments %}
+                            <path class="hemicycle__segment" d="{{ segment.path }}" fill="{{ segment.couleur }}"></path>
+                        {% endfor %}
+                    </g>
+                {% endfor %}
+            </svg>
 
             <div class="hemicycle__total">
                 <strong>{{ data.total }}</strong>
                 <span>Votants</span>
             </div>
+
+            <div class="hemicycle__tooltip" role="tooltip" aria-hidden="true"></div>
         </div>
 
-        {# Légende détaillée par parti #}
-        <div class="hemicycle-legend">
-            {% for groupe in data.details %}
-                <div class="hemicycle-legend__item" style="border-left-color: {{ groupe.couleur }};">
-                    <span class="hemicycle-legend__nom">{{ groupe.nom }}</span>
-                    <span class="hemicycle-legend__votes">
-                        {% if groupe.Pour > 0 %}<span class="legend-pour">✔ {{ groupe.Pour }}</span>{% endif %}
-                        {% if groupe.Contre > 0 %}<span class="legend-contre">✘ {{ groupe.Contre }}</span>{% endif %}
-                        {% if groupe.Abstention > 0 %}<span class="legend-abstention">— {{ groupe.Abstention }}</span>{% endif %}
-                    </span>
-                </div>
-            {% endfor %}
-        </div>
+        <p class="hemicycle-summary">
+            <span class="legend-pour">Pour {{ data.pour }}</span>
+            <span class="legend-contre">Contre {{ data.contre }}</span>
+            <span class="legend-abstention">Abstentions {{ data.abstention }}</span>
+        </p>
     </div>
 {% else %}
     <p class="empty-state">Aucun vote enregistré pour ce texte.</p>

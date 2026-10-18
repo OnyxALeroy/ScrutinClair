@@ -32,16 +32,9 @@
                     <h2 id="titre-vulgarisation">En clair</h2>
                     <span class="badge badge--ai">Simplifié</span>
                 </div>
-                {% for paragraphe in texte.vulgarisation|split("\n\n") %}
-                    {% set bloc = paragraphe|trim|replace({'**': ''}) %}
-                    {% if bloc %}
-                        {% if bloc starts with '#' %}
-                            <h3>{{ bloc|replace({'#': ''})|trim }}</h3>
-                        {% else %}
-                            <p>{{ bloc }}</p>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
+                <div class="vulgarisation__body">
+                    {{ texte.vulgarisation|markdown_to_html }}
+                </div>
                 <p class="ia-note">Résumé vulgarisé généré automatiquement par une intelligence artificielle. Il peut comporter des imprécisions : seul le texte officiel fait foi.</p>
             </section>
         {% endif %}

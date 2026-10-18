@@ -227,16 +227,23 @@ class Texte
         return $this;
     }
 
+    /**
+     * Prépare les données de l'hémicycle : un arc par groupe, découpé en
+     * segments Pour / Contre / Abstention, avec le tracé SVG prêt à l'emploi.
+     *
+     * @return array{total: int, pour: int, contre: int, abstention: int, groupes: list<array<string, mixed>>}
+     */
     public function getHemicyclePolitique(): array
     {
         $votesParGroupe = [];
         $totalVotes = 0;
+        $totaux = ['Pour' => 0, 'Contre' => 0, 'Abstention' => 0];
 
-        // 1. Groupement des votes
         foreach ($this->getVotes() as $vote) {
             $groupe = $vote->getGroupePolitique();
-            if (!$groupe)
+            if (!$groupe) {
                 continue;
+            }
 
             $uid = $groupe->getUid();
 
@@ -246,7 +253,7 @@ class Texte
                     'Pour' => 0,
                     'Contre' => 0,
                     'Abstention' => 0,
-                    'total' => 0
+                    'total' => 0,
                 ];
             }
 
@@ -255,60 +262,128 @@ class Texte
                 $votesParGroupe[$uid][$statut]++;
                 $votesParGroupe[$uid]['total']++;
                 $totalVotes++;
+                $totaux[$statut]++;
             }
         }
 
-        if ($totalVotes === 0)
-            return ['total' => 0];
+        if ($totalVotes === 0) {
+            return [
+                'total' => 0,
+                'pour' => 0,
+                'contre' => 0,
+                'abstention' => 0,
+                'groupes' => [],
+            ];
+        }
 
-        // 2. Tri dynamique basé sur la colonne "ordre" de votre base de données
-        usort($votesParGroupe, function ($a, $b) {
-            return $a['groupe']->getOrdre() <=> $b['groupe']->getOrdre();
-        });
+        usort(
+            $votesParGroupe,
+            static fn (array $a, array $b): int => $a['groupe']->getPositionPolitique() <=> $b['groupe']->getPositionPolitique(),
+        );
 
-        // 3. Calcul du CSS
-        $degresActuels = 0;
-        $gradientPartis = [];
-        $gradientVotes = [];
-        $details = [];
+        // Géométrie du demi-disque : centre en bas au milieu, de 180° (gauche)
+        // à 0° (droite). Chaque groupe occupe un arc proportionnel à ses votants.
+        $centreX = 200.0;
+        $centreY = 200.0;
+        $rayonInterne = 120.0;
+        $rayonExterne = 190.0;
+        $ecart = 0.9; // léger espace entre deux groupes, en degrés
+        $couleurs = ['Pour' => '#22c55e', 'Contre' => '#ef4444', 'Abstention' => '#94a3b8'];
 
-        foreach ($votesParGroupe as $data) {
-            $groupe = $data['groupe'];
-            $partDeg = ($data['total'] / $totalVotes) * 180;
-            $finParti = $degresActuels + $partDeg;
+        $angle = 180.0;
+        $groupes = [];
 
-            // La couleur vient de l'entité GroupePolitique
-            $gradientPartis[] = "{$groupe->getCouleur()} {$degresActuels}deg {$finParti}deg";
+        foreach ($votesParGroupe as $donnees) {
+            if ($donnees['total'] === 0) {
+                continue;
+            }
 
-            $degPour = ($data['Pour'] / $data['total']) * $partDeg;
-            $degContre = ($data['Contre'] / $data['total']) * $partDeg;
+            $part = ($donnees['total'] / $totalVotes) * 180.0;
+            $debut = $angle;
+            $fin = $angle - $part;
+            $angle = $fin;
 
-            $finPour = $degresActuels + $degPour;
-            $finContre = $finPour + $degContre;
+            // On rentre les bords de l'arc pour ménager un espace entre groupes.
+            $marge = min($ecart / 2, $part / 4);
+            $curseur = $debut - $marge;
+            $limite = $fin + $marge;
 
-            if ($degPour > 0)
-                $gradientVotes[] = "#22c55e {$degresActuels}deg {$finPour}deg";
-            if ($degContre > 0)
-                $gradientVotes[] = "#ef4444 {$finPour}deg {$finContre}deg";
-            if ($data['Abstention'] > 0)
-                $gradientVotes[] = "#9ca3af {$finContre}deg {$finParti}deg";
+            $segments = [];
+            foreach (['Pour', 'Contre', 'Abstention'] as $statut) {
+                $nombre = $donnees[$statut];
+                if ($nombre === 0) {
+                    continue;
+                }
 
-            $degresActuels = $finParti;
+                $sousFin = $curseur - ($nombre / $donnees['total']) * ($curseur - $limite);
 
-            $details[] = [
-                'nom' => $groupe->getAcronyme() ?? $groupe->getNom(),
-                'couleur' => $groupe->getCouleur(),
-                'Pour' => $data['Pour'],
-                'Contre' => $data['Contre'],
-                'Abstention' => $data['Abstention']
+                $segments[] = [
+                    'statut' => $statut,
+                    'nombre' => $nombre,
+                    'couleur' => $couleurs[$statut],
+                    'path' => $this->anneauSegment($centreX, $centreY, $rayonInterne, $rayonExterne, $curseur, $sousFin),
+                ];
+
+                $curseur = $sousFin;
+            }
+
+            $groupes[] = [
+                'nom' => $donnees['groupe']->getAcronyme() ?? $donnees['groupe']->getNom(),
+                'nom_complet' => $donnees['groupe']->getNom(),
+                'total' => $donnees['total'],
+                'pour' => $donnees['Pour'],
+                'contre' => $donnees['Contre'],
+                'abstention' => $donnees['Abstention'],
+                'segments' => $segments,
             ];
         }
 
         return [
             'total' => $totalVotes,
-            'css_partis' => implode(', ', $gradientPartis),
-            'css_votes' => implode(', ', $gradientVotes),
-            'details' => $details
+            'pour' => $totaux['Pour'],
+            'contre' => $totaux['Contre'],
+            'abstention' => $totaux['Abstention'],
+            'groupes' => $groupes,
+        ];
+    }
+
+    /**
+     * Tracé SVG d'un segment d'anneau (entre deux angles, dans le sens horaire).
+     */
+    private function anneauSegment(float $cx, float $cy, float $rIn, float $rOut, float $angleDebut, float $angleFin): string
+    {
+        [$xExtDebut, $yExtDebut] = $this->pointPolaire($cx, $cy, $rOut, $angleDebut);
+        [$xExtFin, $yExtFin] = $this->pointPolaire($cx, $cy, $rOut, $angleFin);
+        [$xIntFin, $yIntFin] = $this->pointPolaire($cx, $cy, $rIn, $angleFin);
+        [$xIntDebut, $yIntDebut] = $this->pointPolaire($cx, $cy, $rIn, $angleDebut);
+
+        return sprintf(
+            'M %s %s A %s %s 0 0 1 %s %s L %s %s A %s %s 0 0 0 %s %s Z',
+            $xExtDebut,
+            $yExtDebut,
+            $rOut,
+            $rOut,
+            $xExtFin,
+            $yExtFin,
+            $xIntFin,
+            $yIntFin,
+            $rIn,
+            $rIn,
+            $xIntDebut,
+            $yIntDebut,
+        );
+    }
+
+    /**
+     * @return array{0: float, 1: float}
+     */
+    private function pointPolaire(float $cx, float $cy, float $rayon, float $angleDeg): array
+    {
+        $angle = deg2rad($angleDeg);
+
+        return [
+            round($cx + $rayon * cos($angle), 2),
+            round($cy - $rayon * sin($angle), 2),
         ];
     }
 }
