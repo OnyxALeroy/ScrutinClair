@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Tag;
 use App\Entity\Texte;
 use App\Repository\GroupePolitiqueRepository;
 use App\Repository\PersonnalitePolitiqueRepository;
@@ -84,6 +85,11 @@ final class HomeController extends AbstractController
             'id' => $texte->getId(),
             'titre' => $texte->getObjet() ?? $texte->getTitre(),
             'synthese' => $texte->getSynthese(),
+            'themes' => array_map(static fn (Tag $tag): array => [
+                'label' => $tag->getNom(),
+                'slug' => $tag->getSlug(),
+                'couleur' => $tag->getCouleur(),
+            ], $texte->getThemes()->toArray()),
         ], $texteRepository->search($q));
 
         return $this->json($textes);

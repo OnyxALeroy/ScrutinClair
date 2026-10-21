@@ -23,6 +23,16 @@
 
             <h1>{{ texte.objet ?? texte.titre }}</h1>
 
+            {% if texte.themes is not empty %}
+                <div class="theme-chips">
+                    {% for tag in texte.themes %}
+                        <a class="theme-chip" href="{{ path('app_theme_show', { slug: tag.slug }) }}" style="--theme-couleur: {{ tag.couleur }}">
+                            {{ tag.nom }}
+                        </a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
             {% if texte.synthese %}
                 <p class="lead">{{ texte.synthese }}</p>
             {% endif %}

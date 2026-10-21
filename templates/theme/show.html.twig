@@ -1,0 +1,49 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ theme.label }} — ScrutinClair{% endblock %}
+{% block description %}Les textes de loi et scrutins classés dans le thème « {{ theme.label }} ».{% endblock %}
+
+{% block body %}
+    <a class="backlink" href="{{ path('app_themes') }}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+        Tous les thèmes
+    </a>
+
+    <header class="detail-head" style="--theme-couleur: {{ theme.couleur }}">
+        <span class="detail-head__chip">{{ theme.label }}</span>
+        <h1>{{ theme.label }}</h1>
+        <p class="detail-head__meta">
+            <span>{{ theme.description }}</span>
+        </p>
+    </header>
+
+    <section class="card">
+        <div class="card__head">
+            <span class="card__icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h10"></path></svg>
+            </span>
+            <h2>Textes de ce thème</h2>
+        </div>
+
+        {% if textes %}
+            <ul class="scrutins">
+                {% for texte in textes %}
+                    <li class="scrutin">
+                        <a class="scrutin__titre" href="{{ path('app_texte_show', { id: texte.id }) }}">
+                            {{ texte.objet ?? texte.titre }}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            {{ include('components/_pagination.html.twig', {
+                route: 'app_theme_show',
+                params: { slug: theme.slug },
+                page: page,
+                pages: pages,
+            }) }}
+        {% else %}
+            <p class="empty-state">Aucun texte n'est encore rattaché à ce thème. Les themes sont attribués au fil des vulgarisations.</p>
+        {% endif %}
+    </section>
+{% endblock %}

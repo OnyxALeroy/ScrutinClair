@@ -1,11 +1,15 @@
-.PHONY: help init init-light up up-light down restart shell db-shell diff migrate db-reset cache import import-scrutins import-personnalites ai-up ai-down ai-status vulgarise vulgarise-dry vulgarise-limit vulgarise-status clean
+.PHONY: help init init-light up up-light down restart shell db-shell diff migrate db-reset cache import import-scrutins import-personnalites ai-up ai-down ai-status vulgarise vulgarise-dry vulgarise-limit vulgarise-status vulgarise-full vulgarise-stop test clean
 
 # Variables pour éviter de répéter les noms
-PHP = scrutinclair-php
-DB = scrutinclair-database
+PHP = php
+DB = database
 DB_USER = app
 DB_NAME = app
-OLLAMA = scrutinclair-ollama
+OLLAMA = ollama
+# Volumes externes : créés une fois, jamais supprimés par Compose (le nom est
+# figé, un changement de configuration ne peut donc pas vider la base).
+VOLUME_DB = scrutinclair_db-data
+VOLUME_OLLAMA = scrutinclair_ollama-models
 MODEL ?= qwen2.5:7b-instruct
 N ?= 100
 VULG_OPTS ?=
@@ -26,10 +30,13 @@ help:
 
 ## --- Docker ---
 init: ## Initialise la stack (build + dépendances PHP)
+	docker volume create $(VOLUME_DB)
+	docker volume create $(VOLUME_OLLAMA)
 	$(COMPOSE) --profile ai up -d --build
 	$(COMPOSE) exec $(PHP) composer install
 
 init-light: ## Initialise la stack SANS Ollama (dev léger, IA désactivée)
+	docker volume create $(VOLUME_DB)
 	$(COMPOSE) up -d --build
 	$(COMPOSE) exec $(PHP) composer install
 	AI_ENABLED=0 $(COMPOSE) up -d
@@ -102,7 +109,21 @@ vulgarise-limit: ## Vulgarise N textes seulement (ex. make vulgarise-limit N=200
 	docker compose exec $(PHP) php -d memory_limit=2G bin/console app:vulgariser --limit=$(N) --no-debug
 
 vulgarise-status: ## Affiche l'avancement de la vulgarisation (compteurs par statut)
-	docker compose exec $(PHP) bin/console app:vulgariser --status
+	docker compose exec $(PHP) php -d memory_limit=2G bin/console app:vulgariser --status
+
+vulgarise-full: ## Lance la vulgarisation complète en 2 processus supervisés (reprise auto)
+	docker compose exec -d $(PHP) sh -c 'sh /var/www/symfony/docker/vulgarisation-supervise.sh 0/2'
+	docker compose exec -d $(PHP) sh -c 'sh /var/www/symfony/docker/vulgarisation-supervise.sh 1/2'
+	@echo "Vulgarisation lancée : logs dans var/log/vulgarisation-{0-2,1-2}.log"
+
+vulgarise-stop: ## Arrête les processus de vulgarisation supervisés
+	docker compose exec $(PHP) sh -c 'pkill -f "vulgarisation-super[v]ise"; pkill -f "app:vulgaris[e]r"' || true
+
+## --- Tests ---
+test: ## Migre la base de test puis lance la suite PHPUnit
+	docker compose exec $(PHP) php -d memory_limit=1G bin/console doctrine:migrations:migrate --env=test --no-interaction
+	docker compose exec $(PHP) vendor/bin/phpunit
+
 
 ## --- Utils ---
 clean: ## Supprime les archives téléchargées (data/) et vide le cache Symfony (elles seront re-téléchargées)

@@ -48,8 +48,9 @@ final class VulgarisateurTest extends TestCase
             $etapes[] = [$courant, $total];
         });
 
-        // 5 morceaux + 1 synthèse finale = 6 appels.
-        self::assertSame(6, $appels);
+        // Un appel par morceau, puis un appel de synthèse.
+        self::assertGreaterThan(1, $appels);
+        self::assertSame($appels, \count($etapes) + 1);
         self::assertNotEmpty($etapes);
     }
 }

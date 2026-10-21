@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Les thèmes politiques — ScrutinClair{% endblock %}
+{% block description %}Les 23 thèmes politiques utilisés pour classer les textes de loi : finances, écologie, travail, santé, numérique…{% endblock %}
+
+{% block body %}
+    <header class="page-head">
+        <span class="hero__eyebrow">Thèmes</span>
+        <h1>Les thèmes politiques</h1>
+        <p>Chaque texte de loi est classé par l'intelligence artificielle dans un catalogue de thèmes. Choisissez un thème pour retrouver les scrutins qui lui correspondent.</p>
+    </header>
+
+    <section class="themes" aria-label="Thèmes politiques">
+        {% for item in themes %}
+            {% set theme = item.theme %}
+            {% if item.nombre > 0 %}
+                <a class="theme-card" href="{{ path('app_theme_show', { slug: theme.slug }) }}" style="--theme-couleur: {{ theme.couleur }}">
+                    <span class="theme-card__nom">{{ theme.label }}</span>
+                    <span class="theme-card__meta">{{ item.nombre }} texte{{ item.nombre > 1 ? 's' : '' }}</span>
+                    <span class="theme-card__chevron" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+                    </span>
+                </a>
+            {% else %}
+                <div class="theme-card theme-card--vide" style="--theme-couleur: {{ theme.couleur }}">
+                    <span class="theme-card__nom">{{ theme.label }}</span>
+                    <span class="theme-card__meta">Aucun texte pour l'instant</span>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </section>
+{% endblock %}

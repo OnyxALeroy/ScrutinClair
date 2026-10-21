@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Repository\GroupePolitiqueRepository;
 use App\Repository\PersonnalitePolitiqueRepository;
+use App\Repository\TagRepository;
 use App\Repository\TexteRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,12 +20,14 @@ final class SitemapController extends AbstractController
         TexteRepository $texteRepository,
         GroupePolitiqueRepository $groupeRepository,
         PersonnalitePolitiqueRepository $personnaliteRepository,
+        TagRepository $tagRepository,
     ): Response {
         $base = $request->getSchemeAndHttpHost();
         $urls = [
             $this->url($base, $this->generateUrl('app_home')),
             $this->url($base, $this->generateUrl('app_partis')),
             $this->url($base, $this->generateUrl('app_personnalites')),
+            $this->url($base, $this->generateUrl('app_themes')),
         ];
 
         foreach ($texteRepository->findAllIds() as $id) {
@@ -35,6 +38,9 @@ final class SitemapController extends AbstractController
         }
         foreach ($personnaliteRepository->findAllOrdered() as $personnalite) {
             $urls[] = $this->url($base, $this->generateUrl('app_personnalites_show', ['uid' => $personnalite->getUid()]));
+        }
+        foreach ($tagRepository->findAvecTextes() as $tag) {
+            $urls[] = $this->url($base, $this->generateUrl('app_theme_show', ['slug' => $tag->getSlug()]));
         }
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n"

@@ -1,6 +1,9 @@
 # docker-compose.yml
 services:
-  scrutinclair-database:
+  database:
+    # Nom de conteneur fixé : Compose n'ajoute plus l'index "-1" au nom.
+    container_name: scrutinclair-database
+    restart: unless-stopped
     image: postgres:16-alpine
     environment:
           POSTGRES_DB: ${POSTGRES_DB}
@@ -9,9 +12,11 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
     networks:
-      - scrutinclair-network
+      - app-network
 
-  scrutinclair-php:
+  php:
+    container_name: scrutinclair-php
+    restart: unless-stopped
     build:
       context: .
       dockerfile: docker/php/Dockerfile
@@ -30,12 +35,19 @@ services:
       # ne peut pas créer son répertoire de cache et échoue.
       HOME: /tmp
       COMPOSER_HOME: /tmp/composer
+      # Le proxy de l'hôte ne sait pas résoudre les noms internes du réseau
+      # Docker : il répond 503. On le contourne pour Ollama et PostgreSQL
+      # (on conserve les exclusions injectées par le démon Docker).
+      no_proxy: "localhost,127.0.0.1,::1,ollama,database,nginx,registry.npmjs.org,.actimage-ext.net,git.actimage-ext.net"
+      NO_PROXY: "localhost,127.0.0.1,::1,ollama,database,nginx,registry.npmjs.org,.actimage-ext.net,git.actimage-ext.net"
     depends_on:
-      - scrutinclair-database
+      - database
     networks:
-      - scrutinclair-network
+      - app-network
 
-  scrutinclair-nginx:
+  nginx:
+    container_name: scrutinclair-nginx
+    restart: unless-stopped
     image: nginx:alpine
     ports:
       # Utilise la variable APP_PORT du .env, ou 8000 par défaut si elle est absente
@@ -44,26 +56,46 @@ services:
       - .:/var/www/symfony
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     depends_on:
-      - scrutinclair-php
+      - php
     networks:
-      - scrutinclair-network
+      - app-network
 
   # Service lourd : il n'est ni construit ni lancé tant que le profil "ai"
   # n'est pas activé (docker compose --profile ai ...).
   # La réservation GPU NVIDIA optionnelle se trouve dans compose.ai.yaml.
-  scrutinclair-ollama:
+  ollama:
+    container_name: scrutinclair-ollama
+    restart: unless-stopped
     image: ollama/ollama:latest
+    environment:
+      # 1 = logs détaillés (utile pour diagnostiquer les téléchargements)
+      OLLAMA_DEBUG: "${OLLAMA_DEBUG:-0}"
+      # Un seul emplacement : au-delà, chaque emplacement duplique le cache KV
+      # et la machine (9,7 Go, swap saturé) sature — le débit chute.
+      OLLAMA_NUM_PARALLEL: "${OLLAMA_NUM_PARALLEL:-1}"
+      # Le proxy de l'hôte ne résout pas les noms internes du réseau Docker.
+      no_proxy: "localhost,127.0.0.1,::1,ollama,database,nginx,registry.npmjs.org,.actimage-ext.net,git.actimage-ext.net"
+      NO_PROXY: "localhost,127.0.0.1,::1,ollama,database,nginx,registry.npmjs.org,.actimage-ext.net,git.actimage-ext.net"
     profiles:
       - ai
     volumes:
       - ollama-models:/root/.ollama
     networks:
-      - scrutinclair-network
+      - app-network
 
 volumes:
+  # Volumes "externes" : Docker ne les crée ni ne les supprime jamais. Le nom
+  # est figé, donc un renommage de service ou un changement de configuration
+  # ne peut pas vider la base (Compose recrée un volume nommé dont le
+  # config-hash ne correspond plus, ce qui vide les données).
+  # Les volumes sont créés par le Makefile (make init).
   db-data:
+    external: true
+    name: scrutinclair_db-data
   ollama-models:
+    external: true
+    name: scrutinclair_ollama-models
 
 networks:
-  scrutinclair-network:
+  app-network:
     driver: bridge

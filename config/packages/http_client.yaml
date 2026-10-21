@@ -5,3 +5,6 @@ framework:
                 base_uri: '%env(OLLAMA_URL)%'
                 timeout: 600
                 max_duration: 0
+                # Appels en direct : le proxy de l'hôte ne sait pas résoudre les
+                # noms internes du réseau Docker (il répond 503).
+                no_proxy: 'ollama'

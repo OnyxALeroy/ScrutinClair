@@ -31,7 +31,7 @@ courant. Pour purger des fichiers créés par une ancienne version de la stack (
 encore appartenant à `root`) :
 
 ```bash
-docker compose exec -T -u root scrutinclair-php sh -c 'rm -rf /var/www/symfony/data'
+docker compose exec -T -u root php sh -c 'rm -rf /var/www/symfony/data'
 ```
 
 ## Utilitaires
@@ -91,3 +91,45 @@ make vulgarise-status   # compteurs d'avancement
 
 La commande `app:vulgariser` refuse de s'exécuter si `AI_ENABLED=0` : aucun rapport ne
 peut alors être produit.
+
+## Thèmes politiques
+
+En plus du résumé « en clair », l'IA classe chaque texte dans un catalogue fermé de
+**23 thèmes** (finances publiques, fiscalité, écologie, travail, santé, numérique…).
+Le catalogue fait foi : il est défini une seule fois, dans `src/Enum/Theme.php`.
+
+- Un **dossier** est classé à partir de la synthèse finale de sa vulgarisation
+  (c'est elle qui résume le contenu réel du texte de loi).
+- Un **amendement** est classé à partir de son texte brut, plus signalétique.
+- Un texte porte l'union des deux.
+
+Le classement est fait par le modèle, en JSON contraint (`format: json` côté Ollama).
+Une réponse illisible, ou un thème absent du catalogue, est ignoré : mieux vaut un
+texte sans thème qu'un thème inventé. Le cache par dossier (`vulgarisation_dossier`)
+évite de reclasser les 8 900 textes un par un : 88 dossiers suffisent.
+
+Les thèmes sont affichés sur la page du texte, dans l'API `/api/textes` (champ
+`themes`) et sur la page `/themes`, qui liste le catalogue et les textes de chaque
+thème.
+
+```bash
+make vulgarise-limit N=20   # vulgate et classe 20 textes
+make vulgarise-status       # compteurs, dont « Textes taggés »
+```
+
+### Faire évoluer le catalogue
+
+Ajouter un thème = ajouter un cas dans `src/Enum/Theme.php` (libellé, couleur,
+éclaircissement). Le modèle le prendra en compte immédiatement. Les thèmes déjà
+enregistrés en base qui ne correspondent plus à un thème du catalogue sont ignorés
+à la lecture : il faut alors rejouer la classification (`app:vulgariser --force`).
+
+## Tests
+
+```bash
+make test    # migre la base de test puis lance PHPUnit
+```
+
+La base de test est la base `app_test` (suffixe ajouté automatiquement par Doctrine
+en environnement `test`) : les migrations doivent y être appliquées, d'où la première
+ligne de la cible `make test`.

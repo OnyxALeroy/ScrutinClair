@@ -17,6 +17,7 @@
         "symfony/framework-bundle": "8.1.*",
         "symfony/http-client": "^8.1",
         "symfony/runtime": "8.1.*",
+        "symfony/string": "8.1.*",
         "symfony/twig-bundle": "8.1.*",
         "symfony/yaml": "8.1.*",
         "twig/extra-bundle": "^2.12|^3.0",

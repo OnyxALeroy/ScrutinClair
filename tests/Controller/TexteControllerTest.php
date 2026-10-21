@@ -2,6 +2,7 @@
 
 namespace App\Tests\Controller;
 
+use App\Entity\Tag;
 use App\Entity\Texte;
 use App\Service\AiAvailability;
 use Doctrine\ORM\EntityManagerInterface;
@@ -10,17 +11,28 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 final class TexteControllerTest extends WebTestCase
 {
     private ?int $texteId = null;
+    private ?int $tagId = null;
 
     protected function tearDown(): void
     {
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
         if ($this->texteId !== null) {
-            $em = static::getContainer()->get(EntityManagerInterface::class);
             $texte = $em->find(Texte::class, $this->texteId);
             if ($texte !== null) {
                 $em->remove($texte);
                 $em->flush();
             }
             $this->texteId = null;
+        }
+
+        if ($this->tagId !== null) {
+            $tag = $em->find(Tag::class, $this->tagId);
+            if ($tag !== null) {
+                $em->remove($tag);
+                $em->flush();
+            }
+            $this->tagId = null;
         }
 
         parent::tearDown();
@@ -166,6 +178,69 @@ final class TexteControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.vulgarisation__body', 'Un résumé déjà généré ' . $token . '.');
         self::assertSelectorTextContains('.ia-note', 'désactivée sur cette instance');
+    }
+
+    public function testShowDisplaysThemeChips(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $token = bin2hex(random_bytes(6));
+        $texte = $this->createTexte($em, $token);
+        $this->texteId = $texte->getId();
+
+        $tag = new Tag();
+        $tag->setNom('Finances publiques');
+        $tag->setSlug('finances-publiques');
+        $tag->setCouleur('#4f46e5');
+        $em->persist($tag);
+        $texte->addTheme($tag);
+        $em->flush();
+        $this->tagId = $tag->getId();
+
+        $client->request('GET', '/textes/' . $this->texteId);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('.theme-chip');
+        self::assertSelectorTextContains('.theme-chip', 'Finances publiques');
+        self::assertSelectorExists('a.theme-chip[href="/themes/finances-publiques"]');
+    }
+
+    public function testSearchEndpointReturnsTheThemes(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $token = bin2hex(random_bytes(6));
+        $texte = $this->createTexte($em, $token);
+        $this->texteId = $texte->getId();
+
+        $tag = new Tag();
+        $tag->setNom('Écologie');
+        $tag->setSlug('ecologie');
+        $tag->setCouleur('#16a34a');
+        $em->persist($tag);
+        $texte->addTheme($tag);
+        $em->flush();
+        $this->tagId = $tag->getId();
+
+        $client->request('GET', '/api/textes?q=' . $token);
+
+        self::assertResponseIsSuccessful();
+        $data = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertIsArray($data);
+
+        $trouve = null;
+        foreach ($data as $item) {
+            if ($item['id'] === $this->texteId) {
+                $trouve = $item;
+            }
+        }
+
+        self::assertIsArray($trouve);
+        self::assertArrayHasKey('themes', $trouve);
+        self::assertSame('Écologie', $trouve['themes'][0]['label']);
+        self::assertSame('ecologie', $trouve['themes'][0]['slug']);
     }
 
     private function createTexte(EntityManagerInterface $em, string $token): Texte

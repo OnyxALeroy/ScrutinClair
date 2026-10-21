@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\Texte;
 use App\Entity\VulgarisationDossier;
+use App\Enum\Theme;
 use App\Repository\VulgarisationDossierRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -13,6 +14,10 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  *   - votes sur un texte de loi → vulgarisation du texte du dossier ;
  *   - scrutins sur amendement → vulgarisation du texte de loi (mutualisée par
  *     dossier) puis vulgarisation du seul amendement, concaténées.
+ *
+ * Les thèmes politiques sont attribués en même temps : le dossier est classé
+ * à partir de sa synthèse, l'amendement à partir de son texte brut, et le
+ * texte porte l'union des deux.
  */
 final class VulgarisationGenerator
 {
@@ -20,6 +25,7 @@ final class VulgarisationGenerator
         private readonly DossierLegislatifIndex $dossiers,
         private readonly AmendementResolver $amendements,
         private readonly Vulgarisateur $vulgarisateur,
+        private readonly ThemeClassifier $classifieur,
         private readonly HtmlTextExtractor $htmlExtractor,
         private readonly VulgarisationDossierRepository $vulgarisationDossierRepository,
         private readonly EntityManagerInterface $entityManager,
@@ -68,7 +74,7 @@ final class VulgarisationGenerator
     /**
      * @param callable(string, int, int): void|null $onEtape
      *
-     * @return array{contenu: string, source: string}|null null si aucune source exploitable
+     * @return array{contenu: string, source: string, themes: list<Theme>}|null null si aucune source exploitable
      */
     public function generer(Texte $texte, ?callable $onEtape = null): ?array
     {
@@ -79,8 +85,11 @@ final class VulgarisationGenerator
 
         // 1. Vulgarisation du texte de loi (mutualisée par dossier).
         $vulgLoi = null;
+        $themes = [];
         if ($source['dossierRef'] !== null) {
-            $vulgLoi = $this->vulgarisationDossier($source['dossierRef'], $onEtape);
+            $dossier = $this->vulgarisationDossier($source['dossierRef'], $onEtape);
+            $vulgLoi = $dossier['contenu'];
+            $themes = $dossier['themes'];
         }
 
         // 2. Scrutin sur amendement : on ajoute la vulgarisation de l'amendement.
@@ -89,11 +98,17 @@ final class VulgarisationGenerator
                 $onEtape('amendement', 1, 1);
             }
 
-            $vulgAmendement = $this->vulgarisateur->vulgariserAmendement($source['amendement']['contenu']);
+            $contenuAmendement = $source['amendement']['contenu'];
+            $vulgAmendement = $this->vulgarisateur->vulgariserAmendement($contenuAmendement);
+
+            // L'amendement est classé sur son texte brut, plus signalétique
+            // que la synthèse du dossier.
+            $themes = $this->fusionner($themes, $this->classifieur->classer($contenuAmendement));
 
             return [
                 'contenu' => implode("\n\n", array_filter([$vulgLoi, $vulgAmendement])),
                 'source' => $source['source'],
+                'themes' => $themes,
             ];
         }
 
@@ -101,22 +116,29 @@ final class VulgarisationGenerator
             return null;
         }
 
-        return ['contenu' => $vulgLoi, 'source' => $source['source']];
+        return ['contenu' => $vulgLoi, 'source' => $source['source'], 'themes' => $themes];
     }
 
     /**
+     * Vulgarisation et thèmes d'un dossier, mutualisés par dossier.
+     *
      * @param callable(string, int, int): void|null $onEtape
+     *
+     * @return array{contenu: ?string, themes: list<Theme>}
      */
-    private function vulgarisationDossier(string $dossierRef, ?callable $onEtape): ?string
+    private function vulgarisationDossier(string $dossierRef, ?callable $onEtape): array
     {
         $cache = $this->vulgarisationDossierRepository->findOneBy(['dossierRef' => $dossierRef]);
         if ($cache !== null && $cache->getContenu() !== null) {
-            return $cache->getContenu();
+            return [
+                'contenu' => $cache->getContenu(),
+                'themes' => $this->themesDepuisCache($cache),
+            ];
         }
 
         $uids = $this->dossiers->texteUidsForDossier($dossierRef);
         if ($uids === []) {
-            return null;
+            return ['contenu' => null, 'themes' => []];
         }
 
         $contenu = null;
@@ -129,7 +151,7 @@ final class VulgarisationGenerator
         }
 
         if ($contenu === null) {
-            return null;
+            return ['contenu' => null, 'themes' => []];
         }
 
         $vulgarisation = $this->vulgarisateur->vulgariserTexteLoi(
@@ -137,14 +159,79 @@ final class VulgarisationGenerator
             $onEtape === null ? null : static fn (int $courant, int $total) => $onEtape('loi', $courant, $total),
         );
 
+        // Le dossier est classé sur sa synthèse : c'est elle qui résume le
+        // contenu réel du texte de loi.
+        $themes = $this->classifieur->classer($vulgarisation);
+
         $cache = new VulgarisationDossier();
         $cache->setDossierRef($dossierRef);
         $cache->setContenu($vulgarisation);
         $cache->setModele($this->vulgarisateur->modele());
+        $cache->setThemes($this->libelles($themes));
         $this->entityManager->persist($cache);
         $this->entityManager->flush();
 
-        return $vulgarisation;
+        return ['contenu' => $vulgarisation, 'themes' => $themes];
+    }
+
+    /**
+     * Thèmes d'un dossier déjà vulgarisé : ils sont lus dans le cache, et
+     * recalculés si le dossier a été vulgarisé avant l'existence des thèmes.
+     *
+     * @return list<Theme>
+     */
+    private function themesDepuisCache(VulgarisationDossier $cache): array
+    {
+        $themes = [];
+        foreach ($cache->getThemes() ?? [] as $libelle) {
+            $theme = Theme::fromLabel($libelle);
+            if ($theme !== null) {
+                $themes[] = $theme;
+            }
+        }
+
+        if ($themes !== []) {
+            return $themes;
+        }
+
+        $contenu = $cache->getContenu();
+        if ($contenu === null || trim($contenu) === '') {
+            return [];
+        }
+
+        $themes = $this->classifieur->classer($contenu);
+        if ($themes !== []) {
+            $cache->setThemes($this->libelles($themes));
+            $this->entityManager->flush();
+        }
+
+        return $themes;
+    }
+
+    /**
+     * @param list<Theme> $themes
+     *
+     * @return list<string>
+     */
+    private function libelles(array $themes): array
+    {
+        return array_map(static fn (Theme $theme): string => $theme->label(), $themes);
+    }
+
+    /**
+     * @param list<Theme> $themes
+     * @param list<Theme> $autres
+     *
+     * @return list<Theme>
+     */
+    private function fusionner(array $themes, array $autres): array
+    {
+        $fusion = [];
+        foreach ([...$themes, ...$autres] as $theme) {
+            $fusion[$theme->name] = $theme;
+        }
+
+        return array_values($fusion);
     }
 
     private function fetchDocumentText(string $uid): ?string

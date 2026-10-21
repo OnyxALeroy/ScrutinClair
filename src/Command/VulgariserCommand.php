@@ -3,6 +3,8 @@
 namespace App\Command;
 
 use App\Entity\Texte;
+use App\Enum\Theme;
+use App\Repository\TagRepository;
 use App\Repository\TexteRepository;
 use App\Service\AiAvailability;
 use App\Service\VulgarisationGenerator;
@@ -23,6 +25,7 @@ final class VulgariserCommand extends Command
 {
     public function __construct(
         private readonly TexteRepository $textes,
+        private readonly TagRepository $tags,
         private readonly VulgarisationGenerator $generator,
         private readonly EntityManagerInterface $entityManager,
         private readonly AiAvailability $ai,
@@ -36,6 +39,7 @@ final class VulgariserCommand extends Command
             ->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Nombre maximum de textes à traiter')
             ->addOption('uid', null, InputOption::VALUE_REQUIRED, 'Traiter un seul scrutin (uidScrutin)')
             ->addOption('type', null, InputOption::VALUE_REQUIRED, 'Filtrer : amendement ou dossier')
+            ->addOption('shard', null, InputOption::VALUE_REQUIRED, 'Traitement réparti : « i/n » (ex. 0/2)')
             ->addOption('force', null, InputOption::VALUE_NONE, 'Retraiter les textes déjà vulgarisés')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Résout les sources sans appeler l\'IA')
             ->addOption('status', null, InputOption::VALUE_NONE, 'Affiche uniquement les compteurs d\'avancement');
@@ -62,7 +66,9 @@ final class VulgariserCommand extends Command
             return Command::FAILURE;
         }
 
-        $textes = $this->textes->findPourVulgarisation($force, $limit, $uid, $type);
+        [$shard, $nbShards] = $this->decouperShards($input->getOption('shard'));
+
+        $textes = $this->textes->findPourVulgarisation($force, $limit, $uid, $type, $shard, $nbShards);
         $total = \count($textes);
 
         $io->title($dryRun ? 'Vulgarisation — résolution des sources (dry-run)' : 'Vulgarisation des textes');
@@ -87,7 +93,7 @@ final class VulgariserCommand extends Command
             $bar->start();
         }
 
-        $stats = ['ok' => 0, 'no_source' => 0, 'error' => 0];
+        $stats = ['ok' => 0, 'no_source' => 0, 'error' => 0, 'tagnes' => 0];
         $erreurs = [];
         $index = 0;
         $debut = microtime(true);
@@ -126,6 +132,11 @@ final class VulgariserCommand extends Command
                         $texte->setVulgarisationStatut('ok');
                         $texte->setVulgarisationAt(new \DateTimeImmutable());
                         $stats['ok']++;
+
+                        if ($this->attacherThemes($texte, $resultat['themes']) > 0) {
+                            $stats['tagnes']++;
+                        }
+
                         $statut = 'ok';
                     }
                     $this->entityManager->flush();
@@ -178,7 +189,53 @@ final class VulgariserCommand extends Command
     }
 
     /**
-     * @param array{ok: int, no_source: int, error: int} $stats
+     * Découpe l'option « i/n » en morceau courant et nombre de morceaux.
+     *
+     * @return array{0: ?int, 1: ?int}
+     */
+    private function decouperShards(?string $valeur): array
+    {
+        if ($valeur === null || $valeur === '') {
+            return [null, null];
+        }
+
+        if (!preg_match('/^(\d+)\/(\d+)$/', $valeur, $correspondances)) {
+            throw new \InvalidArgumentException(sprintf('Shard invalide : « %s » (attendu « i/n »).', $valeur));
+        }
+
+        $shard = (int) $correspondances[1];
+        $nbShards = (int) $correspondances[2];
+
+        if ($nbShards < 1 || $shard < 0 || $shard >= $nbShards) {
+            throw new \InvalidArgumentException(sprintf('Shard hors bornes : « %s ».', $valeur));
+        }
+
+        return [$shard, $nbShards];
+    }
+
+    /**
+     * Rattache les thèmes du texte et retourne le nombre de thèmes posés.
+     *
+     * @param list<Theme> $themes
+     */
+    private function attacherThemes(Texte $texte, array $themes): int
+    {
+        if ($themes === []) {
+            return 0;
+        }
+
+        $tags = [];
+        foreach ($themes as $theme) {
+            $tags[] = $this->tags->obtenirPour($theme);
+        }
+
+        $texte->setThemes($tags);
+
+        return \count($tags);
+    }
+
+    /**
+     * @param array{ok: int, no_source: int, error: int, tagnes: int} $stats
      */
     private function afficherBilan(SymfonyStyle $io, array $stats, float $dureeTotale, int $total): void
     {
@@ -186,6 +243,7 @@ final class VulgariserCommand extends Command
             ['Résultat', 'Nombre'],
             [
                 ['Vulgarisés (ok)', $stats['ok']],
+                ['Dont taggés', $stats['tagnes']],
                 ['Sans source exploitable', $stats['no_source']],
                 ['Erreurs', $stats['error']],
                 ['Total traité', $total],
@@ -217,6 +275,7 @@ final class VulgariserCommand extends Command
                 ['error', $compteurs['error'] ?? 0],
                 ['Sans statut (non traité)', $compteurs['null'] ?? 0],
                 ['Total textes', $total],
+                ['Textes taggés', $this->tags->compterTextesTagues()],
             ],
         );
 

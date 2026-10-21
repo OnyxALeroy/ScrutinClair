@@ -55,9 +55,19 @@ class Texte
     #[ORM\OneToMany(targetEntity: Vote::class, mappedBy: 'texte', orphanRemoval: true)]
     private Collection $votes;
 
+    /**
+     * Thèmes politiques attribués par l'IA lors de la vulgarisation.
+     *
+     * @var Collection<int, Tag>
+     */
+    #[ORM\ManyToMany(targetEntity: Tag::class, inversedBy: 'textes')]
+    #[ORM\JoinTable(name: 'texte_tag')]
+    private Collection $themes;
+
     public function __construct()
     {
         $this->votes = new ArrayCollection();
+        $this->themes = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -222,6 +232,51 @@ class Texte
             if ($vote->getTexte() === $this) {
                 $vote->setTexte(null);
             }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Tag>
+     */
+    public function getThemes(): Collection
+    {
+        return $this->themes;
+    }
+
+    public function addTheme(Tag $theme): static
+    {
+        if (!$this->themes->contains($theme)) {
+            $this->themes->add($theme);
+            $theme->addTexte($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTheme(Tag $theme): static
+    {
+        if ($this->themes->removeElement($theme)) {
+            $theme->removeTexte($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Remplace l'ensemble des thèmes du texte.
+     *
+     * @param iterable<Tag> $themes
+     */
+    public function setThemes(iterable $themes): static
+    {
+        foreach ($this->themes->toArray() as $theme) {
+            $this->removeTheme($theme);
+        }
+
+        foreach ($themes as $theme) {
+            $this->addTheme($theme);
         }
 
         return $this;

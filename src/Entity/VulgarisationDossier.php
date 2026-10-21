@@ -26,6 +26,17 @@ class VulgarisationDossier
     #[ORM\Column(type: Types::DATETIMETZ_IMMUTABLE)]
     private ?\DateTimeImmutable $createdAt = null;
 
+    /**
+     * Libellés des thèmes attribués à ce dossier par le classifieur.
+     *
+     * Le cache est partagé par tous les textes du dossier : 88 dossiers à
+     * classer au lieu de 8 900 textes.
+     *
+     * @var list<string>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $themes = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
@@ -80,6 +91,24 @@ class VulgarisationDossier
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function getThemes(): ?array
+    {
+        return $this->themes;
+    }
+
+    /**
+     * @param list<string>|null $themes
+     */
+    public function setThemes(?array $themes): static
+    {
+        $this->themes = $themes;
 
         return $this;
     }

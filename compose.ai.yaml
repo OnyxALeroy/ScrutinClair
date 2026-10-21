@@ -4,7 +4,7 @@
 # Il active l'accélération GPU NVIDIA pour le conteneur Ollama.
 # Sans ce fichier, Ollama tourne sur CPU (plus lent, mais fonctionne partout).
 services:
-  scrutinclair-ollama:
+  ollama:
     deploy:
       resources:
         reservations:
