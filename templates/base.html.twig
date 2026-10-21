@@ -88,7 +88,11 @@
                 </span>
                 <span class="site-footer__credit">
                     <span>Données : Assemblée nationale (Licence Ouverte)</span>
-                    <span>Résumés générés par IA — le texte officiel fait foi.</span>
+                    {% if ai.enabled %}
+                        <span>Résumés générés par IA — le texte officiel fait foi.</span>
+                    {% else %}
+                        <span>Génération de résumés par IA désactivée sur cette instance.</span>
+                    {% endif %}
                 </span>
             </div>
         </footer>

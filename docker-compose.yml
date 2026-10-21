@@ -17,6 +17,10 @@ services:
       dockerfile: docker/php/Dockerfile
     volumes:
       - .:/var/www/symfony:z
+    environment:
+      # 0 = aucune génération IA possible (l'app affiche un message d'indisponibilité)
+      # 1 = la génération IA est autorisée (Ollama doit tourner)
+      AI_ENABLED: "${AI_ENABLED:-1}"
     depends_on:
       - scrutinclair-database
     networks:
@@ -35,19 +39,17 @@ services:
     networks:
       - scrutinclair-network
 
+  # Service lourd : il n'est ni construit ni lancé tant que le profil "ai"
+  # n'est pas activé (docker compose --profile ai ...).
+  # La réservation GPU NVIDIA optionnelle se trouve dans compose.ai.yaml.
   scrutinclair-ollama:
     image: ollama/ollama:latest
+    profiles:
+      - ai
     volumes:
       - ollama-models:/root/.ollama
     networks:
       - scrutinclair-network
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
 
 ###> doctrine/doctrine-bundle ###
   database:

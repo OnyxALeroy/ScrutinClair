@@ -3,6 +3,7 @@
 namespace App\Tests\Controller;
 
 use App\Entity\Texte;
+use App\Service\AiAvailability;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -108,6 +109,63 @@ final class TexteControllerTest extends WebTestCase
         self::assertSelectorExists('.vulgarisation__body strong');
         self::assertSelectorTextContains('.vulgarisation__body li', 'un premier point ' . $token);
         self::assertSelectorNotExists('.vulgarisation__body script');
+    }
+
+    public function testShowDisplaysPendingNoticeWhenAiIsEnabledAndVulgarisationIsMissing(): void
+    {
+        $client = static::createClient();
+        static::getContainer()->set(AiAvailability::class, new AiAvailability('1'));
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $token = bin2hex(random_bytes(6));
+        $texte = $this->createTexte($em, $token);
+        $this->texteId = $texte->getId();
+
+        $client->request('GET', '/textes/' . $this->texteId);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('.vulgarisation');
+        self::assertSelectorTextContains('.vulgarisation__placeholder', 'pas encore été vulgarisé');
+        self::assertSelectorNotExists('.vulgarisation__body');
+    }
+
+    public function testShowDisplaysUnavailableNoticeWhenAiIsDisabled(): void
+    {
+        $client = static::createClient();
+        static::getContainer()->set(AiAvailability::class, new AiAvailability('0'));
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $token = bin2hex(random_bytes(6));
+        $texte = $this->createTexte($em, $token);
+        $this->texteId = $texte->getId();
+
+        $client->request('GET', '/textes/' . $this->texteId);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('.vulgarisation');
+        self::assertSelectorTextContains('.vulgarisation__placeholder', 'désactivée');
+        self::assertSelectorTextContains('.vulgarisation__placeholder', 'aucun rapport ne peut être généré');
+        self::assertSelectorNotExists('.vulgarisation__body');
+    }
+
+    public function testShowDisplaysExistingVulgarisationWithDisabledNoticeWhenAiIsDisabled(): void
+    {
+        $client = static::createClient();
+        static::getContainer()->set(AiAvailability::class, new AiAvailability('0'));
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $token = bin2hex(random_bytes(6));
+        $texte = $this->createTexte($em, $token);
+        $texte->setVulgarisation('Un résumé déjà généré ' . $token . '.');
+        $texte->setVulgarisationStatut('ok');
+        $em->flush();
+        $this->texteId = $texte->getId();
+
+        $client->request('GET', '/textes/' . $this->texteId);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.vulgarisation__body', 'Un résumé déjà généré ' . $token . '.');
+        self::assertSelectorTextContains('.ia-note', 'désactivée sur cette instance');
     }
 
     private function createTexte(EntityManagerInterface $em, string $token): Texte

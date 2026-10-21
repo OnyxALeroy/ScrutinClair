@@ -985,6 +985,38 @@ svg {
     color: var(--muted);
 }
 
+/* Encart « En clair » sans résumé généré */
+.vulgarisation--vide {
+    background: var(--surface);
+    border-style: dashed;
+    box-shadow: none;
+}
+
+.vulgarisation--vide .vulgarisation__icon {
+    background: var(--surface-2);
+    color: var(--muted);
+}
+
+.vulgarisation__tag {
+    margin-left: auto;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.vulgarisation__placeholder {
+    margin: 0;
+    max-width: 68ch;
+    color: var(--text-soft);
+    font-size: 0.95rem;
+    line-height: 1.65;
+}
+
 /* --------------------------------------------------------------------------
    Hémicycle
    -------------------------------------------------------------------------- */

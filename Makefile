@@ -1,4 +1,4 @@
-.PHONY: help init up down restart shell db-shell diff migrate db-reset cache import import-scrutins import-personnalites ai-up ai-status vulgarise vulgarise-dry vulgarise-limit vulgarise-status clean
+.PHONY: help init init-light up up-light down restart shell db-shell diff migrate db-reset cache import import-scrutins import-personnalites ai-up ai-down ai-status vulgarise vulgarise-dry vulgarise-limit vulgarise-status clean
 
 # Variables pour éviter de répéter les noms
 PHP = scrutinclair-php
@@ -10,20 +10,33 @@ MODEL ?= qwen2.5:7b-instruct
 N ?= 100
 VULG_OPTS ?=
 
+# Fichiers compose : le service Ollama n'existe que via le profil "ai"
+COMPOSE = docker compose
+COMPOSE_AI = docker compose -f docker-compose.yml -f compose.ai.yaml
+
 # Affiche la liste des commandes disponibles par défaut
 help:
 	@grep -E '(^[a-zA-Z_-]+:.*?##.*$$)|(^##)' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[32m%-20s\033[0m %s\n", $$1, $$2}'
 
 ## --- Docker ---
-init: # Initialise la stack
-	docker compose exec $(PHP) composer install
-	docker compose up -d --build
+init: ## Initialise la stack (build + dépendances PHP)
+	$(COMPOSE) --profile ai up -d --build
+	$(COMPOSE) exec $(PHP) composer install
 
-up: ## Démarre les conteneurs en arrière-plan
-	docker compose up -d
+init-light: ## Initialise la stack SANS Ollama (dev léger, IA désactivée)
+	$(COMPOSE) up -d --build
+	$(COMPOSE) exec $(PHP) composer install
+	AI_ENABLED=0 $(COMPOSE) up -d
+
+up: ## Démarre les conteneurs en arrière-plan (IA activée)
+	$(COMPOSE) --profile ai up -d
+
+up-light: ## Démarre la stack SANS Ollama (dev léger : aucun rapport IA ne peut être généré)
+	$(COMPOSE) --profile ai stop $(OLLAMA) || true
+	AI_ENABLED=0 $(COMPOSE) up -d
 
 down: ## Arrête et supprime les conteneurs
-	docker compose down
+	$(COMPOSE) --profile ai down
 
 shell: ## Ouvre un terminal bash dans le conteneur PHP
 	docker compose exec $(PHP) sh
@@ -59,12 +72,16 @@ import-personnalites: ## Lance l'importation des personnalités politiques avec 
 	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-personnalites --no-debug
 
 ## --- IA / Vulgarisation ---
-ai-up: ## Démarre Ollama et récupère le modèle
-	docker compose up -d $(OLLAMA)
-	docker compose exec $(OLLAMA) ollama pull $(MODEL)
+ai-up: ## Démarre Ollama (GPU), récupère le modèle et active l'IA dans l'application
+	AI_ENABLED=1 $(COMPOSE_AI) --profile ai up -d
+	$(COMPOSE_AI) --profile ai exec $(OLLAMA) ollama pull $(MODEL)
+
+ai-down: ## Arrête Ollama et repasse l'application en mode sans IA
+	$(COMPOSE) --profile ai stop $(OLLAMA) || true
+	AI_ENABLED=0 $(COMPOSE) up -d
 
 ai-status: ## Liste les modèles Ollama chargés
-	docker compose exec $(OLLAMA) ollama list
+	$(COMPOSE) --profile ai exec $(OLLAMA) ollama list
 
 vulgarise-dry: ## Résout les sources SANS appeler l'IA (mesure la couverture)
 	docker compose exec $(PHP) php -d memory_limit=2G bin/console app:vulgariser --dry-run --no-debug

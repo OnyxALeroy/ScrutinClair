@@ -1,5 +1,9 @@
 twig:
     file_name_pattern: '*.twig'
+    globals:
+        # Service App\Service\AiAvailability : {{ ai.enabled }} indique si la
+        # génération de résumés par IA est autorisée sur cette instance.
+        ai: '@App\Service\AiAvailability'
 
 when@test:
     twig:

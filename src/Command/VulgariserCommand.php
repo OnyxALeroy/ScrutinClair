@@ -4,6 +4,7 @@ namespace App\Command;
 
 use App\Entity\Texte;
 use App\Repository\TexteRepository;
+use App\Service\AiAvailability;
 use App\Service\VulgarisationGenerator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -24,6 +25,7 @@ final class VulgariserCommand extends Command
         private readonly TexteRepository $textes,
         private readonly VulgarisationGenerator $generator,
         private readonly EntityManagerInterface $entityManager,
+        private readonly AiAvailability $ai,
     ) {
         parent::__construct();
     }
@@ -52,6 +54,13 @@ final class VulgariserCommand extends Command
         $limit = $input->getOption('limit') !== null ? (int) $input->getOption('limit') : null;
         $uid = $input->getOption('uid');
         $type = $input->getOption('type');
+
+        if (!$dryRun && !$this->ai->isEnabled()) {
+            $io->error('La génération IA est désactivée sur cette instance (AI_ENABLED=0) : aucun rapport ne peut être généré.');
+            $io->writeln('Passez en mode IA (<info>make ai-up</info>) ou réactivez-la avec <info>AI_ENABLED=1</info> pour lancer la vulgarisation.');
+
+            return Command::FAILURE;
+        }
 
         $textes = $this->textes->findPourVulgarisation($force, $limit, $uid, $type);
         $total = \count($textes);
