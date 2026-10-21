@@ -14,6 +14,38 @@ make up          # démarre la stack (base, PHP, nginx, Ollama)
 
 L'application est alors disponible sur <http://localhost:8000>.
 
+## Permissions des fichiers
+
+Le conteneur PHP tourne avec l'`uid`/`gid` de l'utilisateur hôte : le `Makefile` les
+exporte (`UID`/`GID`) et `docker-compose.yml` les applique via `user:`. Les fichiers
+générés dans le répertoire du projet — `data/` (archives open data), `var/` (cache,
+logs), `vendor/` (dépendances) — appartiennent donc à l'utilisateur et se suppriment
+sans `sudo` :
+
+```bash
+rm -rf data/     # OK, aucune erreur de permission
+```
+
+Passe par `make` (ou exporte `UID`/`GID`) pour que l'uid corresponde à l'utilisateur
+courant. Pour purger des fichiers créés par une ancienne version de la stack (donc
+encore appartenant à `root`) :
+
+```bash
+docker compose exec -T -u root scrutinclair-php sh -c 'rm -rf /var/www/symfony/data'
+```
+
+## Utilitaires
+
+| Cible | Effet |
+| --- | --- |
+| `make clean` | Supprime les archives open data téléchargées (`data/`) et vide le cache Symfony. Les archives seront retéléchargées au prochain import. |
+| `make cache` | Vide le cache Symfony. |
+| `make shell` | Ouvre un terminal dans le conteneur PHP. |
+| `make db-shell` | Ouvre la console `psql` dans le conteneur Postgres. |
+| `make migrate` / `make diff` | Applique les migrations Doctrine / en génère une nouvelle. |
+| `make db-reset` | Supprime la base, la recrée et rejoue les migrations. |
+| `make restart` | Redémarre les conteneurs. |
+
 ## IA / vulgarisation
 
 Les résumés « en clair » sont produits par [Ollama](https://ollama.com/) (modèle

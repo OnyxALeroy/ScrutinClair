@@ -15,12 +15,21 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+    # Les processus PHP tournent avec l'uid/gid de l'utilisateur hôte (exportés
+    # par le Makefile). Les fichiers écrits dans le bind-mount (data/, var/,
+    # vendor/) lui appartiennent donc : ils sont supprimables/modifiables côté
+    # hôte sans sudo.
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - .:/var/www/symfony:z
     environment:
       # 0 = aucune génération IA possible (l'app affiche un message d'indisponibilité)
       # 1 = la génération IA est autorisée (Ollama doit tourner)
       AI_ENABLED: "${AI_ENABLED:-1}"
+      # L'uid de l'hôte n'a pas d'entrée dans /etc/passwd : sans HOME, composer
+      # ne peut pas créer son répertoire de cache et échoue.
+      HOME: /tmp
+      COMPOSER_HOME: /tmp/composer
     depends_on:
       - scrutinclair-database
     networks:
@@ -51,30 +60,7 @@ services:
     networks:
       - scrutinclair-network
 
-###> doctrine/doctrine-bundle ###
-  database:
-    image: postgres:${POSTGRES_VERSION:-16}-alpine
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-app}
-      # You should definitely change the password in production
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-!ChangeMe!}
-      POSTGRES_USER: ${POSTGRES_USER:-app}
-    healthcheck:
-      test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB:-app}", "-U", "${POSTGRES_USER:-app}"]
-      timeout: 5s
-      retries: 5
-      start_period: 60s
-    volumes:
-      - database_data:/var/lib/postgresql/data:rw
-      # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
-      # - ./docker/db/data:/var/lib/postgresql/data:rw
-###< doctrine/doctrine-bundle ###
-
 volumes:
-
-###> doctrine/doctrine-bundle ###
-  database_data:
-###< doctrine/doctrine-bundle ###
   db-data:
   ollama-models:
 

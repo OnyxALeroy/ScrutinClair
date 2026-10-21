@@ -14,6 +14,12 @@ VULG_OPTS ?=
 COMPOSE = docker compose
 COMPOSE_AI = docker compose -f docker-compose.yml -f compose.ai.yaml
 
+# uid/gid de l'utilisateur hôte : passés au conteneur PHP (docker-compose.yml)
+# pour qu'il écrive les fichiers du bind-mount avec les mêmes permissions que
+# l'hôte (data/, var/, vendor/ restent supprimables sans sudo).
+export UID := $(shell id -u)
+export GID := $(shell id -g)
+
 # Affiche la liste des commandes disponibles par défaut
 help:
 	@grep -E '(^[a-zA-Z_-]+:.*?##.*$$)|(^##)' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[32m%-20s\033[0m %s\n", $$1, $$2}'
@@ -37,6 +43,9 @@ up-light: ## Démarre la stack SANS Ollama (dev léger : aucun rapport IA ne peu
 
 down: ## Arrête et supprime les conteneurs
 	$(COMPOSE) --profile ai down
+
+restart: ## Redémarre les conteneurs (base, PHP, nginx, Ollama)
+	$(COMPOSE) --profile ai restart
 
 shell: ## Ouvre un terminal bash dans le conteneur PHP
 	docker compose exec $(PHP) sh
@@ -96,6 +105,6 @@ vulgarise-status: ## Affiche l'avancement de la vulgarisation (compteurs par sta
 	docker compose exec $(PHP) bin/console app:vulgariser --status
 
 ## --- Utils ---
-clean: ## Supprime les archives téléchargées et vide le cache Symfony (elles seront re-téléchargées)
-	rm -rf data/
-	docker compose exec scrutinclair-php bin/console cache:clear
+clean: ## Supprime les archives téléchargées (data/) et vide le cache Symfony (elles seront re-téléchargées)
+	$(COMPOSE) exec -T -u root $(PHP) sh -c 'rm -rf /var/www/symfony/data' || rm -rf data/
+	-$(COMPOSE) exec -T $(PHP) bin/console cache:clear
