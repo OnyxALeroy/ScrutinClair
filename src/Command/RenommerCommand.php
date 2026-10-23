@@ -93,6 +93,11 @@ final class RenommerCommand extends Command
                 $titreCourt = $this->genererPour($texte);
 
                 if ($titreCourt === null) {
+                    if ($force && $texte->getTitreCourt() !== null) {
+                        $texte->setTitreCourt(null)->setTitreCourtAt(null);
+                        $this->entityManager->flush();
+                    }
+
                     $stats['sans_titre']++;
                     $statut = 'aucun titre court';
                 } else {

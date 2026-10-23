@@ -1,22 +1,22 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Les personnalités politiques — ScrutinClair{% endblock %}
-{% block description %}Retrouvez les députés de l'Assemblée nationale : leurs votes et leurs propositions de loi.{% endblock %}
+{% block description %}Retrouvez les députés et les membres du gouvernement : leurs votes, propositions et projets de loi.{% endblock %}
 
 {% block body %}
     <header class="page-head">
         <span class="hero__eyebrow">Assemblée nationale</span>
         <h1>Les personnalités politiques</h1>
-        <p>Recherchez un député par son nom et découvrez ses votes et ses propositions de loi.</p>
+        <p>Recherchez une personnalité par son nom et découvrez ses votes, ses propositions et ses projets de loi.</p>
 
         <form class="search" action="{{ path('app_personnalites') }}" method="GET" role="search">
-            <label class="search__label" for="personnalite-search">Rechercher un député par nom ou prénom.</label>
+            <label class="search__label" for="personnalite-search">Rechercher une personnalité par nom ou prénom.</label>
             <div class="search__field">
                 <span class="search__icon" aria-hidden="true">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </span>
                 <input type="search" id="personnalite-search" name="q" value="{{ q }}"
-                       placeholder="Ex. Maudet, Rimbert…" autocomplete="off">
+                       placeholder="Ex. Maudet, Lecornu…" autocomplete="off">
                 <button type="submit" class="search__submit" aria-label="Rechercher">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
                 </button>
@@ -25,7 +25,7 @@
     </header>
 
     <div class="section-title">
-        <h2>{{ q != '' ? 'Résultats' : 'Tous les députés' }}</h2>
+        <h2>{{ q != '' ? 'Résultats' : 'Toutes les personnalités' }}</h2>
         <span>{{ personnalites|length }} personne{{ personnalites|length > 1 ? 's' : '' }}{{ q != '' ? ' pour « ' ~ q ~ ' »' }}</span>
     </div>
 
@@ -38,9 +38,8 @@
                         <span class="member__body">
                             <span class="member__nom">{{ membre.nomComplet }}</span>
                             <span class="member__meta">
-                                {% if membre.groupePolitique %}{{ membre.groupePolitique.libelleCourt }}{% endif %}
-                                {% if membre.groupePolitique and membre.circonscription %} · {% endif %}
-                                {{ membre.circonscription }}
+                                {% if membre.groupePolitique %}{{ membre.groupePolitique.libelleCourt }}{% elseif membre.fonction %}{{ membre.fonction }}{% endif %}
+                                {% if membre.circonscription %} · {{ membre.circonscription }}{% endif %}
                             </span>
                         </span>
                     </a>

@@ -140,9 +140,58 @@ class TexteRepository extends ServiceEntityRepository
     {
         return (int) $this->createQueryBuilder('t')
             ->select('COUNT(t.id)')
-            ->where('t.titreCourt IS NOT NULL')
+            ->andWhere('t.titreCourt IS NOT NULL')
             ->getQuery()
             ->getSingleScalarResult();
+    }
+
+    /**
+     * Pour chaque dossier législatif, choisit le texte le plus récent qui ne
+     * soit pas un amendement lorsqu'il en existe un.
+     *
+     * @param list<string> $dossierRefs
+     *
+     * @return array<string, int>
+     */
+    public function idsRepresentatifsParDossierRef(array $dossierRefs): array
+    {
+        $dossierRefs = array_values(array_unique(array_filter(
+            $dossierRefs,
+            static fn (mixed $dossierRef): bool => \is_string($dossierRef) && $dossierRef !== '',
+        )));
+
+        if ($dossierRefs === []) {
+            return [];
+        }
+
+        $textes = $this->createQueryBuilder('t')
+            ->andWhere('t.dossierRef IN (:dossierRefs)')
+            ->setParameter('dossierRefs', $dossierRefs)
+            ->orderBy('t.id', 'DESC')
+            ->getQuery()
+            ->getResult();
+
+        $selection = [];
+        foreach ($textes as $texte) {
+            $dossierRef = $texte->getDossierRef();
+            if (!\is_string($dossierRef) || $dossierRef === '') {
+                continue;
+            }
+
+            $estAmendement = str_contains(
+                mb_strtolower((string) ($texte->getObjet() ?? $texte->getTitre() ?? ''), 'UTF-8'),
+                'amendement',
+            );
+
+            if (!isset($selection[$dossierRef]) || ($selection[$dossierRef]['amendement'] && !$estAmendement)) {
+                $selection[$dossierRef] = [
+                    'id' => $texte->getId(),
+                    'amendement' => $estAmendement,
+                ];
+            }
+        }
+
+        return array_map(static fn (array $texte): int => $texte['id'], $selection);
     }
 
     public function compterTotal(): int

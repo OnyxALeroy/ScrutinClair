@@ -18,10 +18,21 @@ Règles : phrases courtes, vocabulaire simple, aucun jargon juridique, pas de li
 N'utilise aucune syntaxe Markdown : pas de #, pas d'étoiles, pas de tirets de liste.
 Écris uniquement des paragraphes de texte courant. Tu peux introduire un paragraphe
 par un titre court terminé par un point, mais jamais avec des symboles.
+Commence directement par l'explication : aucun préambule, aucune formule du type
+« Voici une reformulation… », aucun rappel de la consigne ni du nombre de mots.
 Règle la plus importante : tu ne recopies jamais le texte source. Tu le reformules
 avec tes propres mots, comme si tu l'expliquais à un ami. Tu ne cites aucun numéro
 d'article, aucune référence de code, aucun « article 1er ».
 PROMPT;
+
+    /** Préambules que les petits modèles ajoutent parfois avant le vrai contenu. */
+    private const PREAMBULES = [
+        '/^voici\s+(?:un\s+|une\s+|le\s+|la\s+|les\s+)?(?:proposition\s+de\s+)?(?:reformulation|vulgarisation|réduction|rédaction|version\s+(?:simplifiée|vulgarisée)|résumé|synthèse|texte\s+(?:reformulé|vulgarisé))[^.\n]{0,200}?[:.]\s*/iu',
+        '/^voici\s+les?\s+(?:principaux?\s+)?(?:points?|éléments?|enseignements?|résumés?|synthèses?)[^.\n]{0,200}?[:.]\s*/iu',
+        '/^(?:un\s+|une\s+|le\s+|la\s+|les\s+|cette\s+)?(?:reformulation|vulgarisation|réduction|rédaction|version\s+(?:simplifiée|vulgarisée)|résumé|synthèse)[^.\n]{0,200}?[:.]\s*/iu',
+        '/^pour\s+le\s+grand\s+public\s*[:.]\s*/iu',
+        '/^(?:en\s+)?\d{2,4}\s*(?:à|et|-|–)\s*\d{2,4}\s*mots?[^.\n]{0,80}?[:.]\s*/iu',
+    ];
 
     /**
      * Exemple de vulgarisation : les petits modèles recopient le texte source
@@ -66,9 +77,10 @@ PROMPT;
             mb_substr($contenu, 0, self::TAILLE_SOURCE_MAX),
             $onEtape,
             "Voici le texte d'un projet ou d'une proposition de loi débattu à l'Assemblée nationale.",
-            "Rédige une vulgarisation de ce texte pour le grand public en 200 à 350 mots. "
+            "Écris entre 200 et 350 mots pour le grand public. "
                 . "Explique ce que la loi prévoit concrètement, pour qui, et pourquoi c'est important. "
-                . "Reformule avec tes propres mots, sans citer les articles."
+                . "Reformule avec tes propres mots, sans citer les articles. "
+                . "Commence directement par l'explication, sans préambule ni formule du type « Voici… »."
         );
     }
 
@@ -109,17 +121,17 @@ PROMPT,
         $resumes = [];
         foreach ($morceaux as $index => $morceau) {
             $this->notifier($onEtape, $index + 1, $total);
-            $resumes[] = $this->ollama->chat(
+            $resumes[] = $this->nettoyerSortie($this->ollama->chat(
                 self::SYSTEME,
                 sprintf(
-                    "%s\n\nVoici la partie %d sur %d. Résume les points essentiels en 120 mots maximum, sans conclusion.\n\n--- EXTRAIT ---\n%s",
+                    "%s\n\nVoici la partie %d sur %d. Résume les points essentiels en 120 mots maximum, sans conclusion ni préambule.\n\n--- EXTRAIT ---\n%s",
                     $consigne,
                     $index + 1,
                     $total,
                     $morceau,
                 ),
                 ['num_predict' => 280],
-            );
+            ));
         }
 
         $this->notifier($onEtape, $total, $total);
@@ -140,24 +152,68 @@ PROMPT,
      */
     private function reformuler(string $consigne, string $demande, string $source, int $numPredict): string
     {
-        $sortie = $this->ollama->chat(
+        $sortie = $this->nettoyerSortie($this->ollama->chat(
             self::SYSTEME,
             $consigne . "\n\n" . $demande . "\n\n--- TEXTE ---\n" . $source,
             ['num_predict' => $numPredict],
-        );
+        ));
 
         if (!$this->estRecopie($sortie, $source)) {
             return $sortie;
         }
 
-        return $this->ollama->chat(
+        return $this->nettoyerSortie($this->ollama->chat(
             self::SYSTEME,
             $consigne . "\n\n" . $demande
                 . "\n\nATTENTION : ta précédente réponse recopiait le texte source. "
                 . "Explique le texte avec tes propres mots, dans un style simple, "
                 . "sans reprendre les phrases d'origine.\n\n--- TEXTE ---\n" . $source,
             ['num_predict' => $numPredict],
-        );
+        ));
+    }
+
+    /**
+     * Retire les formules d'introduction que le modèle ajoute parfois
+     * (« Voici une reformulation… : », « En 200 à 350 mots… », etc.).
+     */
+    private function nettoyerSortie(string $sortie): string
+    {
+        $original = trim($sortie);
+        $texte = $this->retirerGuillemets($original);
+
+        for ($tour = 0; $tour < 4; ++$tour) {
+            $avant = $texte;
+
+            $texte = preg_replace('/^\s*(?:-{3,}|\*{3,}|_{3,})\s*/u', '', $texte) ?? $texte;
+            $texte = preg_replace('/^\s*(?:[#>*_]+|-\s+)+/u', '', $texte) ?? $texte;
+            $texte = trim($texte);
+
+            foreach (self::PREAMBULES as $motif) {
+                $nettoye = preg_replace($motif, '', $texte, 1) ?? $texte;
+                if ($nettoye !== $texte) {
+                    $texte = ltrim($nettoye);
+                    continue 2;
+                }
+            }
+
+            if ($texte === $avant) {
+                break;
+            }
+        }
+
+        $texte = $this->retirerGuillemets(trim($texte));
+
+        return $texte !== '' ? $texte : $original;
+    }
+
+    private function retirerGuillemets(string $texte): string
+    {
+        $texte = trim($texte);
+        if (preg_match('/^[«"“](.+)[»"”]$/us', $texte, $m) === 1) {
+            return trim($m[1]);
+        }
+
+        return $texte;
     }
 
     /**

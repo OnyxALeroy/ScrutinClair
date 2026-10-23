@@ -109,16 +109,68 @@ class VoteRepository extends ServiceEntityRepository
     }
 
     /**
-     * Votes d'une personnalité, avec le texte associé, du plus récent au plus ancien.
+     * Votes d'une personnalité sur les textes rattachés à au moins un thème.
+     *
+     * @return list<array{voteId: int, statut: string, texteId: int, objet: ?string, titre: ?string, titreCourt: ?string, tagId: int, tagNom: string, tagSlug: string, tagCouleur: ?string}>
+     */
+    public function findVotesTaguesParPersonalite(PersonnalitePolitique $personalite): array
+    {
+        $rows = $this->createQueryBuilder('v')
+            ->select('v.id AS voteId', 'v.statut AS statut')
+            ->addSelect('t.id AS texteId', 't.objet AS objet', 't.titre AS titre', 't.titreCourt AS titreCourt')
+            ->addSelect('tag.id AS tagId', 'tag.nom AS tagNom', 'tag.slug AS tagSlug', 'tag.couleur AS tagCouleur')
+            ->join('v.texte', 't')
+            ->join('t.themes', 'tag')
+            ->andWhere('v.personalite = :personalite')
+            ->setParameter('personalite', $personalite)
+            ->orderBy('t.id', 'DESC')
+            ->addOrderBy('tag.id', 'ASC')
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(static fn (array $row): array => [
+            'voteId' => (int) $row['voteId'],
+            'statut' => $row['statut'],
+            'texteId' => (int) $row['texteId'],
+            'objet' => $row['objet'],
+            'titre' => $row['titre'],
+            'titreCourt' => $row['titreCourt'],
+            'tagId' => (int) $row['tagId'],
+            'tagNom' => $row['tagNom'],
+            'tagSlug' => $row['tagSlug'],
+            'tagCouleur' => $row['tagCouleur'],
+        ], $rows);
+    }
+
+    /**
+     * Nombre de votes d'une personnalité sur des textes sans thème.
+     */
+    public function compterSansTagPourPersonalite(PersonnalitePolitique $personalite): int
+    {
+        return (int) $this->createQueryBuilder('v')
+            ->select('COUNT(v.id)')
+            ->join('v.texte', 't')
+            ->leftJoin('t.themes', 'tag')
+            ->andWhere('v.personalite = :personalite')
+            ->andWhere('tag.id IS NULL')
+            ->setParameter('personalite', $personalite)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * Votes d'une personnalité sur des textes sans thème, du plus récent au plus ancien.
      *
      * @return Vote[]
      */
-    public function findByPersonalite(PersonnalitePolitique $personalite, int $limit = 30, int $offset = 0): array
+    public function findSansTagPourPersonalite(PersonnalitePolitique $personalite, int $limit = 30, int $offset = 0): array
     {
         return $this->createQueryBuilder('v')
             ->addSelect('t')
             ->join('v.texte', 't')
+            ->leftJoin('t.themes', 'tag')
             ->andWhere('v.personalite = :personalite')
+            ->andWhere('tag.id IS NULL')
             ->setParameter('personalite', $personalite)
             ->orderBy('t.id', 'DESC')
             ->setFirstResult($offset)
@@ -126,4 +178,5 @@ class VoteRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
 }

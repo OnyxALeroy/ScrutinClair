@@ -7,6 +7,7 @@ use App\Entity\Texte;
 use App\Repository\GroupePolitiqueRepository;
 use App\Repository\PersonnalitePolitiqueRepository;
 use App\Repository\TexteRepository;
+use App\Service\TitreCourtGenerator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,6 +16,10 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class HomeController extends AbstractController
 {
+    public function __construct(private readonly TitreCourtGenerator $titreCourt)
+    {
+    }
+
     #[Route('/', name: 'app_home', methods: ['GET'])]
     public function index(
         Request $request,
@@ -67,7 +72,7 @@ final class HomeController extends AbstractController
         foreach ($texteRepository->search($q, 10) as $texte) {
             $items[] = [
                 'type' => 'texte',
-                'label' => $texte->getTitreAffiche(),
+                'label' => $this->titreAffiche($texte),
                 'sub' => $texte->getSynthese(),
                 'url' => $this->generateUrl('app_texte_show', ['id' => $texte->getId()]),
             ];
@@ -81,9 +86,9 @@ final class HomeController extends AbstractController
     {
         $q = trim((string) $request->query->get('q', ''));
 
-        $textes = array_map(static fn (Texte $texte): array => [
+        $textes = array_map(fn (Texte $texte): array => [
             'id' => $texte->getId(),
-            'titre' => $texte->getTitreAffiche(),
+            'titre' => $this->titreAffiche($texte),
             'titreLong' => $texte->getTitreLong(),
             'synthese' => $texte->getSynthese(),
             'themes' => array_map(static fn (Tag $tag): array => [
@@ -102,5 +107,15 @@ final class HomeController extends AbstractController
         return $this->render('texte/show.html.twig', [
             'texte' => $texte,
         ]);
+    }
+
+    private function titreAffiche(Texte $texte): string
+    {
+        $court = trim((string) $texte->getTitreCourt());
+        if ($court !== '') {
+            return $court;
+        }
+
+        return $this->titreCourt->genererSansIa($texte->getTitreLong()) ?? $texte->getTitreLong();
     }
 }

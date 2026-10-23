@@ -123,6 +123,84 @@ final class TitreCourtGeneratorTest extends TestCase
         self::assertSame(0, $appels);
     }
 
+    public function testGenereUnTitreCourtSansIaPourAffichage(): void
+    {
+        $appels = 0;
+        $client = new MockHttpClient(function () use (&$appels): MockResponse {
+            ++$appels;
+
+            return new MockResponse('', ['response_headers' => ['Content-Type' => 'application/json']]);
+        });
+        $generateur = new TitreCourtGenerator(new OllamaClient($client, 'modele', 8192));
+
+        self::assertSame(
+            'Simplification de la vie économique (article 20, amendement 1839)',
+            $generateur->genererSansIa("l'amendement n° 1839 de M. Tesson de suppression de l'article 20 du projet de loi de simplification de la vie économique (première lecture)."),
+        );
+        self::assertSame(
+            'Lutte contre les fraudes sociales et fiscales (article 5, amendement 676)',
+            $generateur->genererSansIa("l'amendement n° 676 de M. Coquerel à l'article 5 (examen prioritaire) du projet de loi relatif à la lutte contre les fraudes sociales et fiscales (première lecture)."),
+        );
+        self::assertSame(0, $appels, 'Le repli d\'affichage ne doit pas appeler l\'IA.');
+    }
+
+    public function testNeCoupePasUnSujetLongSansIa(): void
+    {
+        $generateur = $this->generateur('X');
+
+        self::assertSame(
+            'Préserver les droits des victimes dont la plainte est classée sans suite (article 2, amendement 4)',
+            $generateur->genererSansIa("l'amendement n° 4 de Mme Cathala après l'article 2 de la proposition de loi visant à préserver les droits des victimes dont la plainte est classée sans suite (première lecture)."),
+        );
+    }
+
+    public function testRejetteUnSujetParRegleQuiFinitParUnMotDeLiaison(): void
+    {
+        $generateur = $this->generateur('X');
+
+        self::assertNull(
+            $generateur->genererSansIa('le projet de loi visant à préserver les droits des victimes dont la'),
+        );
+    }
+
+    public function testRedemandeUnTitreQuiFinitParUnMotDeLiaison(): void
+    {
+        $appels = 0;
+        $generateur = $this->generateurAvecReponses(
+            ['Préserver les droits des victimes dont la', 'Préserver les droits des victimes'],
+            $appels,
+        );
+
+        self::assertSame(
+            'Préserver les droits des victimes (article 2, amendement 4)',
+            $generateur->generer("l'amendement n° 4 de Mme Cathala après l'article 2 de la proposition de loi visant à préserver les droits des victimes dont la plainte est classée sans suite (première lecture)."),
+        );
+        self::assertSame(2, $appels);
+    }
+
+    public function testAccepteUnTitreCompletAuDelaDeLaCible(): void
+    {
+        $generateur = $this->generateur('Améliorer la prise en charge des patients et garantir l\'accès aux soins partout');
+
+        self::assertSame(
+            'Améliorer la prise en charge des patients et garantir l\'accès aux soins partout',
+            $generateur->generer('la proposition de loi visant à améliorer la prise en charge des patients'),
+        );
+    }
+
+    public function testRejetteUnTitreTropLongPuisUtiliseLesRegles(): void
+    {
+        $appels = 0;
+        $tropLong = 'Améliorer la prise en charge des patients et garantir l\'accès aux soins partout en France et dans les territoires ultramarins';
+        $generateur = $this->generateurAvecReponses([$tropLong, $tropLong], $appels);
+
+        self::assertSame(
+            'Améliorer la prise en charge des patients',
+            $generateur->generer('la proposition de loi visant à améliorer la prise en charge des patients'),
+        );
+        self::assertSame(2, $appels);
+    }
+
     public function testLeModeleNeVoitQueLeTitreOfficiel(): void
     {
         $corps = null;

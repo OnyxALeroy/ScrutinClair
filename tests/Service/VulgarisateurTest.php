@@ -28,6 +28,62 @@ final class VulgarisateurTest extends TestCase
         self::assertSame(1, $appels);
     }
 
+    public function testRetireLePreambuleDeVulgarisation(): void
+    {
+        $client = new MockHttpClient(static fn (): MockResponse => new MockResponse(json_encode([
+            'message' => ['content' => "Voici une reformulation du texte de loi en 200 à 350 mots, pour le grand public :\n\nCette loi crée une aide pour les entreprises."],
+        ]), ['response_headers' => ['Content-Type' => 'application/json']]));
+
+        $vulgarisateur = new Vulgarisateur(new OllamaClient($client, 'modele', 8192));
+
+        self::assertSame(
+            'Cette loi crée une aide pour les entreprises.',
+            $vulgarisateur->vulgariserTexteLoi('Un texte court.'),
+        );
+    }
+
+    public function testRetirePlusieursPreambulesEtLeMarkdown(): void
+    {
+        $client = new MockHttpClient(static fn (): MockResponse => new MockResponse(json_encode([
+            'message' => ['content' => "**Voici une reformulation du texte de loi en 200 à 350 mots, pour le grand public :**\nEn 200 à 350 mots :\nCette loi crée une aide pour les entreprises."],
+        ]), ['response_headers' => ['Content-Type' => 'application/json']]));
+
+        $vulgarisateur = new Vulgarisateur(new OllamaClient($client, 'modele', 8192));
+
+        self::assertSame(
+            'Cette loi crée une aide pour les entreprises.',
+            $vulgarisateur->vulgariserTexteLoi('Un texte court.'),
+        );
+    }
+
+    public function testRetireUnPreambuleDePointsCles(): void
+    {
+        $client = new MockHttpClient(static fn (): MockResponse => new MockResponse(json_encode([
+            'message' => ['content' => "Voici les principaux points de la proposition de loi sur le droit à l'aide à mourir :\n\n1. Définition du droit à l'aide à mourir."],
+        ]), ['response_headers' => ['Content-Type' => 'application/json']]));
+
+        $vulgarisateur = new Vulgarisateur(new OllamaClient($client, 'modele', 8192));
+
+        self::assertSame(
+            "1. Définition du droit à l'aide à mourir.",
+            $vulgarisateur->vulgariserTexteLoi('Un texte court.'),
+        );
+    }
+
+    public function testConserveUnePhraseQuiCommenceParVoiciSansFormule(): void
+    {
+        $client = new MockHttpClient(static fn (): MockResponse => new MockResponse(json_encode([
+            'message' => ['content' => 'Voici le texte de loi qui crée une aide pour les entreprises.'],
+        ]), ['response_headers' => ['Content-Type' => 'application/json']]));
+
+        $vulgarisateur = new Vulgarisateur(new OllamaClient($client, 'modele', 8192));
+
+        self::assertSame(
+            'Voici le texte de loi qui crée une aide pour les entreprises.',
+            $vulgarisateur->vulgariserTexteLoi('Un texte court.'),
+        );
+    }
+
     public function testTexteLongDeclencheUnMapReduce(): void
     {
         $appels = 0;

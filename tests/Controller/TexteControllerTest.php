@@ -2,8 +2,10 @@
 
 namespace App\Tests\Controller;
 
+use App\Entity\PersonnalitePolitique;
 use App\Entity\Tag;
 use App\Entity\Texte;
+use App\Entity\Vote;
 use App\Service\AiAvailability;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -12,6 +14,7 @@ final class TexteControllerTest extends WebTestCase
 {
     private ?int $texteId = null;
     private ?int $tagId = null;
+    private ?int $personnaliteId = null;
 
     protected function tearDown(): void
     {
@@ -33,6 +36,15 @@ final class TexteControllerTest extends WebTestCase
                 $em->flush();
             }
             $this->tagId = null;
+        }
+
+        if ($this->personnaliteId !== null) {
+            $personnalite = $em->find(PersonnalitePolitique::class, $this->personnaliteId);
+            if ($personnalite !== null) {
+                $em->remove($personnalite);
+                $em->flush();
+            }
+            $this->personnaliteId = null;
         }
 
         parent::tearDown();
@@ -241,6 +253,37 @@ final class TexteControllerTest extends WebTestCase
         self::assertArrayHasKey('themes', $trouve);
         self::assertSame('Écologie', $trouve['themes'][0]['label']);
         self::assertSame('ecologie', $trouve['themes'][0]['slug']);
+    }
+
+    public function testShowLinksVotersToTheirPersonalityPage(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $token = bin2hex(random_bytes(6));
+        $texte = $this->createTexte($em, $token);
+        $this->texteId = $texte->getId();
+
+        $personnalite = new PersonnalitePolitique();
+        $personnalite->setUid('PA' . $token);
+        $personnalite->setPrenom('Marie');
+        $personnalite->setNom('Test ' . $token);
+        $em->persist($personnalite);
+        $em->flush();
+        $this->personnaliteId = $personnalite->getId();
+
+        $vote = new Vote();
+        $vote->setStatut('Pour');
+        $vote->setPersonalite($personnalite);
+        $texte->addVote($vote);
+        $em->persist($vote);
+        $em->flush();
+
+        $client->request('GET', '/textes/' . $this->texteId);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('a.vote__nom[href="/personnalites/' . $personnalite->getUid() . '"]');
+        self::assertSelectorTextContains('.vote__nom', 'Marie Test ' . $token);
     }
 
     private function createTexte(EntityManagerInterface $em, string $token): Texte

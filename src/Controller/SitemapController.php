@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Repository\GouvernementRepository;
 use App\Repository\GroupePolitiqueRepository;
 use App\Repository\PersonnalitePolitiqueRepository;
 use App\Repository\TagRepository;
@@ -19,6 +20,7 @@ final class SitemapController extends AbstractController
         Request $request,
         TexteRepository $texteRepository,
         GroupePolitiqueRepository $groupeRepository,
+        GouvernementRepository $gouvernementRepository,
         PersonnalitePolitiqueRepository $personnaliteRepository,
         TagRepository $tagRepository,
     ): Response {
@@ -26,6 +28,7 @@ final class SitemapController extends AbstractController
         $urls = [
             $this->url($base, $this->generateUrl('app_home')),
             $this->url($base, $this->generateUrl('app_partis')),
+            $this->url($base, $this->generateUrl('app_gouvernements')),
             $this->url($base, $this->generateUrl('app_personnalites')),
             $this->url($base, $this->generateUrl('app_themes')),
         ];
@@ -35,6 +38,9 @@ final class SitemapController extends AbstractController
         }
         foreach ($groupeRepository->findAllOrdered() as $groupe) {
             $urls[] = $this->url($base, $this->generateUrl('app_partis_show', ['uid' => $groupe->getUid()]));
+        }
+        foreach ($gouvernementRepository->findAllOrdered() as $gouvernement) {
+            $urls[] = $this->url($base, $this->generateUrl('app_gouvernements_show', ['uid' => $gouvernement->getUid()]));
         }
         foreach ($personnaliteRepository->findAllOrdered() as $personnalite) {
             $urls[] = $this->url($base, $this->generateUrl('app_personnalites_show', ['uid' => $personnalite->getUid()]));

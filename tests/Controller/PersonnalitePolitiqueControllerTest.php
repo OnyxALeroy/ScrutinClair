@@ -4,6 +4,7 @@ namespace App\Tests\Controller;
 
 use App\Entity\GroupePolitique;
 use App\Entity\PersonnalitePolitique;
+use App\Entity\Tag;
 use App\Entity\Texte;
 use App\Entity\Vote;
 use Doctrine\ORM\EntityManagerInterface;
@@ -68,6 +69,39 @@ final class PersonnalitePolitiqueControllerTest extends WebTestCase
         self::assertSelectorTextContains('h1', $personnalite->getNomComplet());
         self::assertSelectorTextContains('body', $texte->getObjet());
         self::assertSelectorTextContains('body', 'Contre');
+    }
+
+    public function testShowGroupsVotesByThemeAndShortensTitles(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $token = bin2hex(random_bytes(5));
+        $personnalite = $this->createPersonnalite($em, $token);
+        $tag = $this->createTag($em, $token);
+
+        $texteTague = $this->createTexte($em, $token, "l'amendement n° 1839 de M. Tesson de suppression de l'article 20 du projet de loi de simplification de la vie économique (première lecture).");
+        $texteTague->addTheme($tag);
+        $em->flush();
+        $this->createVote($em, $texteTague, $personnalite, 'Pour');
+
+        $texteSansTag = $this->createTexte($em, $token, 'Objet sans thème ' . $token);
+        $this->createVote($em, $texteSansTag, $personnalite, 'Contre');
+
+        $crawler = $client->request('GET', '/personnalites/' . $personnalite->getUid());
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.theme-votes__resume', 'Thème ' . $token);
+        self::assertSelectorTextContains('.theme-votes__ratio', '1 pour');
+        self::assertSelectorTextContains('.theme-votes__ratio', '0 contre');
+
+        $titres = $crawler->filter('.theme-votes__groupe .scrutin__titre')->each(
+            static fn ($node): string => trim($node->text()),
+        );
+        self::assertContains('Simplification de la vie économique (article 20, amendement 1839)', $titres);
+        self::assertNotContains($texteTague->getTitreLong(), $titres);
+
+        self::assertSelectorTextContains('.theme-votes--sans', $texteSansTag->getTitreLong());
     }
 
     public function testPhotoServesCachedFile(): void
@@ -141,12 +175,25 @@ final class PersonnalitePolitiqueControllerTest extends WebTestCase
         return $personnalite;
     }
 
-    private function createTexte(EntityManagerInterface $em, string $token): Texte
+    private function createTag(EntityManagerInterface $em, string $token): Tag
+    {
+        $tag = new Tag();
+        $tag->setNom('Thème ' . $token);
+        $tag->setSlug('theme-' . strtolower($token));
+        $tag->setCouleur('#4c6ef5');
+        $em->persist($tag);
+        $em->flush();
+        $this->crees[] = $tag;
+
+        return $tag;
+    }
+
+    private function createTexte(EntityManagerInterface $em, string $token, ?string $objet = null): Texte
     {
         $texte = new Texte();
         $texte->setTitre('Titre ' . $token);
-        $texte->setObjet('Objet du scrutin ' . $token);
-        $texte->setUidScrutin('TEST' . $token);
+        $texte->setObjet($objet ?? 'Objet du scrutin ' . $token);
+        $texte->setUidScrutin('TEST' . $token . bin2hex(random_bytes(3)));
         $em->persist($texte);
         $em->flush();
         $this->crees[] = $texte;

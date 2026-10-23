@@ -15,6 +15,7 @@ namespace App\Service;
 final class TitreCourtGenerator
 {
     public const LONGUEUR_MAX = 70;
+    public const LONGUEUR_TOLEREE = 90;
 
     private const SYSTEME = <<<'PROMPT'
     Tu rédiges des titres courts et clairs pour des textes de loi français,
@@ -25,6 +26,16 @@ final class TitreCourtGenerator
 
     /** Mots interdits dans le sujet : le code les ajoute lui-même. */
     private const BRUIT = ['n°', 'article', 'amendement', 'sous-amendement', 'première lecture', 'nouvelle lecture', 'seconde lecture', 'examen prioritaire'];
+
+    /** Mots de liaison qui signalent une phrase inachevée. */
+    private const MOTS_FINAUX_INTERDITS = [
+        'dont', 'de', 'du', 'des', 'la', 'le', 'les', 'l', 'un', 'une',
+        'à', 'au', 'aux', 'en', 'pour', 'par', 'sur', 'sous', 'avec', 'sans',
+        'que', 'qui', 'quoi', 'où', 'et', 'ou', 'mais', 'car', 'afin', 'dans',
+        'vers', 'chez', 'entre', 'contre', 'depuis', 'pendant', 'après', 'avant',
+        'selon', 'lors', 'lorsque', 'quand', 'si', 'comme', 'toutefois', 'cependant',
+        'néanmoins', 'or', 'donc', 'ni', 'y', 'd', 'qu', 'jusqu', 'lorsqu',
+    ];
 
     public function __construct(private readonly OllamaClient $ollama)
     {
@@ -40,27 +51,58 @@ final class TitreCourtGenerator
             return null;
         }
 
+        [$reference, $budget, $budgetMax] = $this->referencesEtBudgets($titreOfficiel);
+
+        $sujet = $this->demanderSujet($titreOfficiel, $dossier, $budget, $budgetMax);
+        $sujet ??= $this->sujetParRegle($titreOfficiel);
+
+        return $this->composer($sujet, $reference);
+    }
+
+    /**
+     * Repli déterministe, sans appel à l'IA : sert à l'affichage pour les
+     * textes dont le titre court n'a pas encore été généré.
+     */
+    public function genererSansIa(string $titreOfficiel): ?string
+    {
+        $titreOfficiel = trim($titreOfficiel);
+        if ($titreOfficiel === '') {
+            return null;
+        }
+
+        [$reference] = $this->referencesEtBudgets($titreOfficiel);
+
+        return $this->composer($this->sujetParRegle($titreOfficiel), $reference);
+    }
+
+    /**
+     * @return array{0: string, 1: int, 2: int}
+     */
+    private function referencesEtBudgets(string $titreOfficiel): array
+    {
         $reference = $this->references($titreOfficiel);
         $budget = $reference === ''
             ? self::LONGUEUR_MAX
             : self::LONGUEUR_MAX - mb_strlen($reference) - 4;
+        $budgetMax = $reference === ''
+            ? self::LONGUEUR_TOLEREE
+            : self::LONGUEUR_TOLEREE - mb_strlen($reference) - 4;
 
         if ($budget < 16) {
-            $reference = '';
-            $budget = self::LONGUEUR_MAX;
+            return ['', self::LONGUEUR_MAX, self::LONGUEUR_TOLEREE];
         }
 
-        $sujet = $this->demanderSujet($titreOfficiel, $dossier, $budget);
-        $sujet ??= $this->sujetParRegle($titreOfficiel);
+        return [$reference, $budget, $budgetMax];
+    }
 
-        if ($sujet === null || $sujet === '') {
+    private function composer(?string $sujet, string $reference): ?string
+    {
+        if ($sujet === null || trim($sujet) === '') {
             return null;
         }
 
-        $sujet = $this->ecreter($sujet, $budget);
-        $sujet = $this->capitaliser($sujet);
-
-        if ($sujet === '') {
+        $sujet = $this->capitaliser(trim($sujet));
+        if (!$this->sujetComplet($sujet)) {
             return null;
         }
 
@@ -90,7 +132,7 @@ final class TitreCourtGenerator
         return implode(', ', $parties);
     }
 
-    private function demanderSujet(string $titreOfficiel, ?string $dossier, int $budget): ?string
+    private function demanderSujet(string $titreOfficiel, ?string $dossier, int $budget, int $budgetMax): ?string
     {
         $consigne = "Voici le titre officiel d'un texte de loi ou d'un amendement de l'Assemblée nationale :\n"
             . '« ' . $titreOfficiel . ' »';
@@ -99,11 +141,14 @@ final class TitreCourtGenerator
         }
 
         $consigne .= "\n\nRédige un titre court qui résume le sujet de ce texte : "
-            . 'entre 3 et 8 mots, ' . $budget . ' caractères maximum, sans guillemets ni point final. '
+            . 'entre 3 et 8 mots, vise ' . $budget . ' caractères (maximum ' . $budgetMax . '), '
+            . 'sans guillemets ni point final. '
+            . 'Le titre doit être une phrase complète et autonome : ne le termine jamais par un '
+            . 'mot de liaison (de, du, des, la, le, les, à, au, aux, dont, que, qui, pour, entre…). '
             . "Ne mentionne ni le nom d'un auteur, ni le numéro d'un amendement ou d'un article, "
             . 'ni la phase de lecture : le code ajoute ces références après coup. '
             . "Le sujet doit se lire comme le titre d'un article de presse. "
-            . "Réponds uniquement par le titre.";
+            . 'Réponds uniquement par le titre.';
 
         for ($essai = 0; $essai < 2; ++$essai) {
             try {
@@ -115,20 +160,21 @@ final class TitreCourtGenerator
                 return null;
             }
 
-            $sujet = $this->nettoyer($reponse, $budget);
+            $sujet = $this->nettoyer($reponse, $budgetMax);
             if ($sujet !== null) {
                 return $sujet;
             }
 
-            $consigne .= "\nTa réponse précédente était inexploitable : elle devait faire "
-                . $budget . ' caractères maximum et ne contenir aucune référence. '
-                . "Réponds par le seul sujet, sans rien d'autre.";
+            $consigne .= "\nTa réponse précédente était inexploitable : elle dépassait "
+                . $budgetMax . ' caractères, se terminait par un mot de liaison ou contenait une référence. '
+                . 'Raccourcis-la en une phrase complète de 3 à 8 mots, sans mot de liaison final. '
+                . 'Réponds par le seul sujet, sans rien d\'autre.';
         }
 
         return null;
     }
 
-    private function nettoyer(string $reponse, int $budget): ?string
+    private function nettoyer(string $reponse, int $budgetMax): ?string
     {
         $sujet = trim($reponse);
 
@@ -136,10 +182,10 @@ final class TitreCourtGenerator
         $sujet = (string) preg_replace('/^(?:titre|titre court|titre court proposé)\s*[:\-–]\s*/iu', '', $sujet);
         $sujet = (string) preg_replace('/^(?:#+\s*|\*\*|\*|\d+\.\s*|-\s*)/u', '', $sujet);
         $sujet = trim($sujet, " \t\n\r\0\x0B\"“”«»'’`*_");
-        $sujet = rtrim($sujet, '.');
+        $sujet = rtrim($sujet, " \t\n\r\0\x0B.,;:…—-–");
         $sujet = trim($sujet);
 
-        if (mb_strlen($sujet) < 4 || mb_strlen($sujet) > $budget + 15) {
+        if (mb_strlen($sujet) < 4 || mb_strlen($sujet) > $budgetMax) {
             return null;
         }
 
@@ -150,7 +196,33 @@ final class TitreCourtGenerator
             }
         }
 
-        return $sujet;
+        return $this->sujetComplet($sujet) ? $sujet : null;
+    }
+
+    /**
+     * Vérifie que le sujet se termine par un mot plein, pas par un mot de
+     * liaison : une phrase coupée en plein milieu est rejetée.
+     */
+    private function sujetComplet(string $sujet): bool
+    {
+        $sujet = trim($sujet);
+        if ($sujet === '') {
+            return false;
+        }
+
+        if (preg_match('/[.,;:…\-–—]$/u', $sujet) === 1) {
+            return false;
+        }
+
+        $mots = preg_split('/\s+/u', $sujet) ?: [];
+        $dernier = mb_strtolower((string) end($mots));
+        if (str_ends_with($dernier, "'") || str_ends_with($dernier, '’')) {
+            return false;
+        }
+
+        $dernier = trim($dernier, "'’");
+
+        return !\in_array($dernier, self::MOTS_FINAUX_INTERDITS, true);
     }
 
     /**
@@ -207,21 +279,4 @@ final class TitreCourtGenerator
         return mb_strtoupper($initiale) . mb_substr($sujet, 1);
     }
 
-    /**
-     * Coupe au niveau d'un mot entier pour respecter la longueur maximale.
-     */
-    private function ecreter(string $sujet, int $budget): string
-    {
-        if (mb_strlen($sujet) <= $budget) {
-            return $sujet;
-        }
-
-        $tranche = mb_substr($sujet, 0, $budget);
-        $espace = mb_strrpos($tranche, ' ');
-        if ($espace !== false && $espace >= (int) ($budget * 0.5)) {
-            $tranche = mb_substr($tranche, 0, $espace);
-        }
-
-        return rtrim($tranche, " \t,;:….-");
-    }
 }

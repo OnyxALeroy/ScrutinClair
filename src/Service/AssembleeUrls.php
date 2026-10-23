@@ -44,6 +44,15 @@ final class AssembleeUrls
         );
     }
 
+    public function acteursGouvernementsZipUrl(): string
+    {
+        return sprintf(
+            '%s/static/openData/repository/%d/amo/deputes_senateurs_ministres_legislature/AMO20_dep_sen_min_tous_mandats_et_organes.json.zip',
+            $this->openData,
+            $this->legislature,
+        );
+    }
+
     public function dossiersZipUrl(): string
     {
         return sprintf(

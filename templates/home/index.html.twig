@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Rechercher un texte, un parti, un député — ScrutinClair{% endblock %}
+{% block title %}Rechercher un texte, un parti, une personnalité — ScrutinClair{% endblock %}
 
 {% block body %}
     {% for message in app.flashes('success') %}
@@ -10,11 +10,11 @@
     <section class="hero">
         <span class="hero__eyebrow">Assemblée nationale</span>
         <h1>Comprendre la vie parlementaire <span class="hero__accent">en clair</span></h1>
-        <p>Cherchez un texte de loi, un groupe politique ou un député, et découvrez l’essentiel expliqué simplement.</p>
+        <p>Cherchez un texte de loi, un groupe politique ou une personnalité, et découvrez l’essentiel expliqué simplement.</p>
 
         <form class="search" action="{{ path('app_home') }}" method="GET" role="search" autocomplete="off"
               data-recherche-api="{{ path('app_recherche') }}">
-            <label class="search__label" for="texte-search">Rechercher un texte, un groupe politique ou un député.</label>
+            <label class="search__label" for="texte-search">Rechercher un texte, un groupe politique ou une personnalité.</label>
             <div class="search__field">
                 <span class="search__icon" aria-hidden="true">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -23,7 +23,7 @@
                     </svg>
                 </span>
                 <input type="search" id="texte-search" name="q" value="{{ q }}"
-                       placeholder="Ex. projet de loi de finances, RN, Maudet…"
+                       placeholder="Ex. projet de loi de finances, RN, Lecornu…"
                        autocomplete="off" aria-autocomplete="list" aria-controls="texte-suggestions" aria-expanded="false">
                 <button type="submit" class="search__submit" aria-label="Rechercher">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -68,7 +68,7 @@
 
         {% if personnalites %}
             <section class="result-bloc" aria-label="Personnalités politiques">
-                <h3 class="result-bloc__title">Députés</h3>
+                <h3 class="result-bloc__title">Personnalités</h3>
                 <ul class="member-grid">
                     {% for membre in personnalites %}
                         <li>
@@ -77,9 +77,8 @@
                                 <span class="member__body">
                                     <span class="member__nom">{{ membre.nomComplet }}</span>
                                     <span class="member__meta">
-                                        {% if membre.groupePolitique %}{{ membre.groupePolitique.libelleCourt }}{% endif %}
-                                        {% if membre.groupePolitique and membre.circonscription %} · {% endif %}
-                                        {{ membre.circonscription }}
+                                        {% if membre.groupePolitique %}{{ membre.groupePolitique.libelleCourt }}{% elseif membre.fonction %}{{ membre.fonction }}{% endif %}
+                                        {% if membre.circonscription %} · {{ membre.circonscription }}{% endif %}
                                     </span>
                                 </span>
                             </a>
@@ -96,7 +95,7 @@
                     {% for texte in textes %}
                         <li>
                             <a href="{{ path('app_texte_show', { id: texte.id }) }}">
-                                <span class="results__titre">{{ texte.titreAffiche }}</span>
+                                <span class="results__titre">{{ texte.titreCourt ?? (texte.titreLong|titre_court) }}</span>
                                 {% if texte.synthese %}<span class="synthese">{{ texte.synthese }}</span>{% endif %}
                             </a>
                         </li>
@@ -137,8 +136,8 @@
                         <path d="M16.5 5.1a3.2 3.2 0 0 1 0 5.8"></path>
                     </svg>
                 </span>
-                <h3>Partis et députés</h3>
-                <p>Explorez les groupes politiques et retrouvez les votes et propositions de chaque député.</p>
+                <h3>Partis et personnalités</h3>
+                <p>Explorez les groupes politiques et retrouvez les votes et les textes portés par chaque personnalité.</p>
             </article>
         </section>
 
@@ -152,13 +151,22 @@
                     <small>Effectifs et votes de chaque parti</small>
                 </span>
             </a>
+            <a class="shortcut" href="{{ path('app_gouvernements') }}">
+                <span class="shortcut__icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>
+                </span>
+                <span>
+                    <strong>Les gouvernements</strong>
+                    <small>Compositions et ministres</small>
+                </span>
+            </a>
             <a class="shortcut" href="{{ path('app_personnalites') }}">
                 <span class="shortcut__icon" aria-hidden="true">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20"></path><circle cx="9" cy="8" r="3.2"></circle><path d="M22 20v-1.5a4 4 0 0 0-3-3.85"></path><path d="M16.5 5.1a3.2 3.2 0 0 1 0 5.8"></path></svg>
                 </span>
                 <span>
-                    <strong>Les députés</strong>
-                    <small>Votes et propositions de loi</small>
+                    <strong>Les personnalités</strong>
+                    <small>Votes, propositions et projets de loi</small>
                 </span>
             </a>
         </section>

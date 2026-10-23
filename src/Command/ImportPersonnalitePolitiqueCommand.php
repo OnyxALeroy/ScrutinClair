@@ -10,7 +10,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'app:import-personnalites',
-    description: 'Télécharge et importe les personnalités politiques (actuellement : Assemblée Nationale)',
+    description: 'Télécharge et importe les personnalités politiques et les gouvernements (Assemblée nationale)',
 )]
 class ImportPersonnalitePolitiqueCommand extends Command
 {
@@ -30,8 +30,9 @@ class ImportPersonnalitePolitiqueCommand extends Command
         // Appel de la méthode spécifique à l'Assemblée.
         // Plus tard, on rajoutera $this->importer->importDepuisSenat() juste en dessous
         $this->importer->importDepuisAssembleeNationale();
+        $this->importer->importGouvernements();
 
-        $io->success('Import des personnalités terminé avec succès !');
+        $io->success('Import des personnalités et des gouvernements terminé avec succès !');
 
         return Command::SUCCESS;
     }

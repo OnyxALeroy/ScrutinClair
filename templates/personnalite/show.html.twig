@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ personnalite.nomComplet }} — ScrutinClair{% endblock %}
-{% block description %}{{ personnalite.nomComplet }}{% if personnalite.groupePolitique %}, {{ personnalite.groupePolitique.nom }}{% endif %} : votes et propositions de loi à l'Assemblée nationale.{% endblock %}
+{% block description %}{{ personnalite.nomComplet }}{% if personnalite.groupePolitique %}, {{ personnalite.groupePolitique.nom }}{% endif %} : votes, propositions et projets de loi à l'Assemblée nationale.{% endblock %}
 
 {% block body %}
     {% set age = personnalite.dateNaissance ? date().diff(personnalite.dateNaissance).y : null %}
@@ -43,26 +43,67 @@
             <h2>Ses votes</h2>
         </div>
 
-        {% if votes %}
+        {% if total > 0 %}
             {{ include('components/_statbar.html.twig', { stats: stats }) }}
 
-            <ul class="votes">
-                {% for vote in votes %}
-                    <li class="vote vote--{{ vote.statut|lower }}">
-                        <a class="vote__nom" href="{{ path('app_texte_show', { id: vote.texte.id }) }}">
-                            {{ vote.texte.titreAffiche }}
-                        </a>
-                        <span class="vote__statut">{{ vote.statut }}</span>
-                    </li>
-                {% endfor %}
-            </ul>
+            {% if themesVotes %}
+                <div class="theme-votes">
+                    <h3 class="theme-votes__titre">Votes par thème</h3>
+                    <p class="theme-votes__aide">Un texte peut relever de plusieurs thèmes.</p>
 
-            {{ include('components/_pagination.html.twig', {
-                route: 'app_personnalites_show',
-                params: { uid: personnalite.uid },
-                page: page,
-                pages: pages,
-            }) }}
+                    {% for groupe in themesVotes %}
+                        <details class="theme-votes__groupe"{% if loop.first %} open{% endif %}>
+                            <summary class="theme-votes__resume">
+                                <span class="theme-chip" style="--theme-couleur: {{ groupe.tag.couleur }}">{{ groupe.tag.nom }}</span>
+                                <span class="theme-votes__ratio">
+                                    <strong class="theme-votes__pour">{{ groupe.stats.pour }}</strong> pour ·
+                                    <strong class="theme-votes__contre">{{ groupe.stats.contre }}</strong> contre
+                                    {% if groupe.stats.abstention %} · {{ groupe.stats.abstention }} abst.{% endif %}
+                                </span>
+                            </summary>
+
+                            <ul class="scrutins">
+                                {% for vote in groupe.votes %}
+                                    <li class="scrutin">
+                                        <a class="scrutin__titre" href="{{ path('app_texte_show', { id: vote.texteId }) }}">
+                                            {{ vote.titreCourt ?? (vote.objet ?? vote.titre)|titre_court }}
+                                        </a>
+                                        <span class="scrutin__vote scrutin__vote--{{ vote.statut|lower }}">{{ vote.statut }}</span>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </details>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% if votesSansTag %}
+                <div class="theme-votes theme-votes--sans">
+                    <h3 class="theme-votes__titre">
+                        Autres votes
+                        <span class="theme-votes__count">{{ totalSansTag|number_format(0, ',', ' ') }}</span>
+                    </h3>
+                    <p class="theme-votes__aide">Textes pas encore rattachés à un thème.</p>
+
+                    <ul class="scrutins">
+                        {% for vote in votesSansTag %}
+                            <li class="scrutin">
+                                <a class="scrutin__titre" href="{{ path('app_texte_show', { id: vote.texte.id }) }}">
+                                    {{ vote.texte.titreCourt ?? (vote.texte.titreLong|titre_court) }}
+                                </a>
+                                <span class="scrutin__vote scrutin__vote--{{ vote.statut|lower }}">{{ vote.statut }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+
+                    {{ include('components/_pagination.html.twig', {
+                        route: 'app_personnalites_show',
+                        params: { uid: personnalite.uid },
+                        page: page,
+                        pages: pages,
+                    }) }}
+                </div>
+            {% endif %}
         {% else %}
             <p class="empty-state">Aucun vote enregistré pour cette personne.</p>
         {% endif %}
@@ -80,19 +121,50 @@
         {% if propositions %}
             <ul class="propositions">
                 {% for proposition in propositions %}
+                    {% set texteId = texteIdsParDossier[proposition.dossierRef] ?? null %}
                     <li class="proposition">
-                        <a class="proposition__titre" href="{{ proposition.lien }}" target="_blank" rel="noopener">
+                        <a class="proposition__titre" href="{{ texteId ? path('app_texte_show', { id: texteId }) : proposition.lien }}"{% if not texteId %} target="_blank" rel="noopener"{% endif %}>
                             {{ proposition.titre }}
                         </a>
                         <span class="proposition__meta">
+                            {% if proposition.qualite == 'cosignataire' %}
+                                <span class="proposition__badge">Cosignataire</span>
+                            {% endif %}
                             {% if proposition.dateDepot %}Déposée le {{ proposition.dateDepot|date('d/m/Y') }}{% endif %}
-                            <span class="proposition__source">Texte officiel (Assemblée nationale)</span>
+                            <span class="proposition__source">{{ texteId ? 'Fiche ScrutinClair' : 'Texte officiel (Assemblée nationale)' }}</span>
                         </span>
                     </li>
                 {% endfor %}
             </ul>
         {% else %}
-            <p class="empty-state">Aucune proposition de loi déposée par cette personnalité n'a été trouvée.</p>
+            <p class="empty-state">Aucune proposition de loi déposée ou cosignée par cette personnalité n'a été trouvée.</p>
         {% endif %}
     </section>
+
+    {% if projets %}
+        <section class="card">
+            <div class="card__head">
+                <span class="card__icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v4h4"></path><path d="M9 12h6"></path><path d="M9 16h6"></path></svg>
+                </span>
+                <h2>Projets de loi</h2>
+                <span class="card__count">{{ projets|length }}</span>
+            </div>
+
+            <ul class="propositions">
+                {% for projet in projets %}
+                    {% set texteId = texteIdsParDossier[projet.dossierRef] ?? null %}
+                    <li class="proposition">
+                        <a class="proposition__titre" href="{{ texteId ? path('app_texte_show', { id: texteId }) : projet.lien }}"{% if not texteId %} target="_blank" rel="noopener"{% endif %}>
+                            {{ projet.titre }}
+                        </a>
+                        <span class="proposition__meta">
+                            {% if projet.dateDepot %}Déposé le {{ projet.dateDepot|date('d/m/Y') }}{% endif %}
+                            <span class="proposition__source">{{ texteId ? 'Fiche ScrutinClair' : 'Texte officiel (Assemblée nationale)' }}</span>
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
 {% endblock %}

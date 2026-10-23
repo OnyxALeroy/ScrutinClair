@@ -1,6 +1,6 @@
 {% if texte %}
     {% set objetBas = (texte.objet ?? texte.titre ?? '')|lower %}
-    {% set aTitreCourt = texte.titreCourt is not null and texte.titreCourt is not empty %}
+    {% set titreAffiche = texte.titreCourt ?? (texte.titreLong|titre_court) %}
 
     <article>
         <header class="texte-header">
@@ -22,9 +22,9 @@
                 {% endif %}
             </div>
 
-            <h1>{{ texte.titreAffiche }}</h1>
+            <h1>{{ titreAffiche }}</h1>
 
-            {% if aTitreCourt and texte.titreCourt != texte.titreLong %}
+            {% if titreAffiche != texte.titreLong %}
                 <p class="texte-titre-officiel">
                     <span class="texte-titre-officiel__label">Texte officiel</span>
                     <span class="texte-titre-officiel__valeur">{{ texte.titreLong }}</span>
@@ -115,7 +115,11 @@
                 <ul class="votes">
                     {% for vote in texte.votes %}
                         <li class="vote vote--{{ vote.statut|lower }}">
-                            <span class="vote__nom">{{ vote.personalite ? vote.personalite.prenom ~ ' ' ~ vote.personalite.nom : 'Député non renseigné' }}</span>
+                            {% if vote.personalite %}
+                                <a class="vote__nom" href="{{ path('app_personnalites_show', { uid: vote.personalite.uid }) }}">{{ vote.personalite.nomComplet }}</a>
+                            {% else %}
+                                <span class="vote__nom">Député non renseigné</span>
+                            {% endif %}
                             <span class="vote__statut">{{ vote.statut }}</span>
                         </li>
                     {% else %}

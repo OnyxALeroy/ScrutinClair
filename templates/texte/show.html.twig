@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ texte.titreAffiche }} — ScrutinClair{% endblock %}
+{% block title %}{{ texte.titreCourt ?? (texte.titreLong|titre_court) }} — ScrutinClair{% endblock %}
 
 {% block javascripts %}
     <script src="/js/hemicycle.js" defer></script>

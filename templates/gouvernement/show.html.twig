@@ -1,0 +1,91 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ gouvernement.nomAffiche }} — ScrutinClair{% endblock %}
+{% block description %}Composition et membres du {{ gouvernement.nomAffiche|lower }}.{% endblock %}
+
+{% block body %}
+    {% set premierMinistre = gouvernement.premierMinistre %}
+
+    <a class="backlink" href="{{ path('app_gouvernements') }}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+        Tous les gouvernements
+    </a>
+
+    <header class="page-head page-head--gouvernement">
+        <span class="hero__eyebrow">
+            {% if gouvernement.estActuel %}Gouvernement en exercice{% else %}Gouvernement{% endif %}
+        </span>
+        <h1>{{ gouvernement.nomAffiche }}</h1>
+        <p>
+            {% if gouvernement.estActuel %}
+                Depuis le {{ gouvernement.dateDebut|date('d/m/Y') }}
+            {% else %}
+                Du {{ gouvernement.dateDebut|date('d/m/Y') }}
+                {% if gouvernement.dateFin %}au {{ gouvernement.dateFin|date('d/m/Y') }}{% endif %}
+            {% endif %}
+            · {{ nombreMembres }} membre{{ nombreMembres > 1 ? 's' : '' }}
+        </p>
+
+        <dl class="facts">
+            {% if premierMinistre %}
+                <div>
+                    <dt>Premier ministre</dt>
+                    <dd>
+                        <a href="{{ path('app_personnalites_show', { uid: premierMinistre.personnalite.uid }) }}">
+                            {{ premierMinistre.personnalite.nomComplet }}
+                        </a>
+                    </dd>
+                </div>
+            {% endif %}
+            <div><dt>Début</dt><dd>{{ gouvernement.dateDebut|date('d/m/Y') }}</dd></div>
+            {% if gouvernement.dateFin %}
+                <div><dt>Fin</dt><dd>{{ gouvernement.dateFin|date('d/m/Y') }}</dd></div>
+            {% endif %}
+        </dl>
+    </header>
+
+    {% for groupe in membresParCategorie %}
+        <section class="card gouvernement-groupe">
+            <div class="card__head">
+                <span class="card__icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>
+                </span>
+                <h2>{{ groupe.titre }}</h2>
+                <span class="card__count">{{ groupe.membres|length }}</span>
+            </div>
+
+            <ul class="membres-gouvernement">
+                {% for membre in groupe.membres %}
+                    <li>
+                        <a class="membre-gouvernement" href="{{ path('app_personnalites_show', { uid: membre.personnalite.uid }) }}">
+                            {{ include('components/_avatar.html.twig', { personne: membre.personnalite, classe: 'membre-gouvernement__avatar' }) }}
+                            <span class="membre-gouvernement__body">
+                                <span class="membre-gouvernement__nom">{{ membre.personnalite.nomComplet }}</span>
+                                {% if membre.role != groupe.titre %}
+                                    <span class="membre-gouvernement__role">{{ membre.role }}</span>
+                                {% endif %}
+                                {% if membre.ministere and membre.ministere != membre.role %}
+                                    <span class="membre-gouvernement__ministere">{{ membre.ministere }}</span>
+                                {% endif %}
+                                <span class="membre-gouvernement__periode">
+                                    {% if membre.dateDebut %}
+                                        {% if membre.dateFin %}
+                                            Du {{ membre.dateDebut|date('d/m/Y') }} au {{ membre.dateFin|date('d/m/Y') }}
+                                        {% else %}
+                                            Depuis le {{ membre.dateDebut|date('d/m/Y') }}
+                                        {% endif %}
+                                    {% elseif membre.dateFin %}
+                                        Jusqu'au {{ membre.dateFin|date('d/m/Y') }}
+                                    {% endif %}
+                                </span>
+                            </span>
+                            <span class="membre-gouvernement__chevron" aria-hidden="true">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+                            </span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endfor %}
+{% endblock %}

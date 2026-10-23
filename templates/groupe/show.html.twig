@@ -32,7 +32,7 @@
                 {% for vote in votes %}
                     <li class="scrutin">
                         <a class="scrutin__titre" href="{{ path('app_texte_show', { id: vote.texteId }) }}">
-                            {{ vote.titreCourt ?? vote.objet ?? vote.titre }}
+                            {{ vote.titreCourt ?? (vote.objet ?? vote.titre)|titre_court }}
                         </a>
                         <div class="scrutin__votes" aria-label="Répartition du groupe">
                             <span class="scrutin__vote scrutin__vote--pour" title="Pour">{{ vote.pour }}</span>
