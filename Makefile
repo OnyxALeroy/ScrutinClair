@@ -1,4 +1,4 @@
-.PHONY: help init init-light up up-light down restart shell db-shell diff migrate db-reset cache import import-scrutins import-personnalites ai-up ai-down ai-status vulgarise vulgarise-dry vulgarise-limit vulgarise-status vulgarise-full vulgarise-stop test clean
+.PHONY: help init init-light up up-light down restart shell db-shell diff migrate db-reset cache import import-scrutins import-personnalites import-votes ai-up ai-down ai-status ia-traiter ia-status vulgarise vulgarise-dry vulgarise-limit vulgarise-status vulgarise-full vulgarise-stop test clean
 
 # Variables pour éviter de répéter les noms
 PHP = php
@@ -77,15 +77,19 @@ cache: ## Vide le cache de Symfony
 	docker compose exec $(PHP) bin/console cache:clear
 
 ## --- App ---
-import: ## Lance tous les imports (scrutins, personnalites)
+import: ## Lance tous les imports (scrutins, personnalites, votes)
 	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-personnalites --no-debug
 	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-assemblee --no-debug
+	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-votes --no-debug
 
 import-scrutins: ## Lance l'importation de l'Assemblée avec 1Go de RAM
 	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-assemblee --no-debug
 
 import-personnalites: ## Lance l'importation des personnalités politiques avec 1Go de RAM
 	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-personnalites --no-debug
+
+import-votes: ## Recrée les votes depuis les JSON sans toucher aux données IA (--no-debug évite l'accumulation SQL en mémoire)
+	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-votes --no-debug
 
 ## --- IA / Vulgarisation ---
 ai-up: ## Démarre Ollama (GPU), récupère le modèle et active l'IA dans l'application
@@ -118,6 +122,20 @@ vulgarise-full: ## Lance la vulgarisation complète en 2 processus supervisés (
 
 vulgarise-stop: ## Arrête les processus de vulgarisation supervisés
 	docker compose exec $(PHP) sh -c 'pkill -f "vulgarisation-super[v]ise"; pkill -f "app:vulgaris[e]r"' || true
+
+ia-traiter: ## Traite titre court + tags + résumé texte par texte (ex. make ia-traiter 100 ou make ia-traiter LIMIT=100)
+	@ARGS=""; \
+	if [ -n "$(LIMIT)" ]; then ARGS="--limit=$(LIMIT)"; fi; \
+	for arg in $(filter-out $@,$(MAKECMDGOALS)); do \
+		if echo "$$arg" | grep -Eq '^[0-9]+$$'; then ARGS="--limit=$$arg"; fi; \
+	done; \
+	docker compose exec $(PHP) php -d memory_limit=2G bin/console app:ia:traiter $$ARGS --no-debug
+
+ia-status: ## Affiche l'avancement du traitement IA (titre court, tags, résumé)
+	docker compose exec $(PHP) php -d memory_limit=2G bin/console app:ia:traiter --status
+
+%:
+	@:
 
 ## --- Tests ---
 test: ## Migre la base de test puis lance la suite PHPUnit

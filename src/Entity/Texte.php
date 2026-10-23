@@ -50,6 +50,16 @@ class Texte
     private ?string $vulgarisationStatut = null;
 
     /**
+     * Titre court destiné au grand public, rédigé par l'IA.
+     * Le titre officiel complet reste dans « titre » / « objet ».
+     */
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $titreCourt = null;
+
+    #[ORM\Column(type: 'datetimetz_immutable', nullable: true)]
+    private ?\DateTimeImmutable $titreCourtAt = null;
+
+    /**
      * @var Collection<int, Vote>
      */
     #[ORM\OneToMany(targetEntity: Vote::class, mappedBy: 'texte', orphanRemoval: true)]
@@ -205,6 +215,56 @@ class Texte
         $this->vulgarisationStatut = $vulgarisationStatut;
 
         return $this;
+    }
+
+    public function getTitreCourt(): ?string
+    {
+        return $this->titreCourt;
+    }
+
+    public function setTitreCourt(?string $titreCourt): static
+    {
+        $this->titreCourt = $titreCourt;
+
+        return $this;
+    }
+
+    public function getTitreCourtAt(): ?\DateTimeImmutable
+    {
+        return $this->titreCourtAt;
+    }
+
+    public function setTitreCourtAt(?\DateTimeImmutable $titreCourtAt): static
+    {
+        $this->titreCourtAt = $titreCourtAt;
+
+        return $this;
+    }
+
+    /**
+     * Titre officiel complet, tel qu'il figure dans le scrutin.
+     */
+    public function getTitreLong(): string
+    {
+        $objet = trim((string) $this->objet);
+        if ($objet !== '') {
+            return $objet;
+        }
+
+        $titre = trim((string) $this->titre);
+
+        return $titre !== '' ? $titre : 'Texte sans titre';
+    }
+
+    /**
+     * Titre à afficher au public : le titre court s'il existe, sinon le
+     * titre officiel complet.
+     */
+    public function getTitreAffiche(): string
+    {
+        $court = trim((string) $this->titreCourt);
+
+        return $court !== '' ? $court : $this->getTitreLong();
     }
 
     /**

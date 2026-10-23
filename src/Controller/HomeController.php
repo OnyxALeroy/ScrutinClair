@@ -67,7 +67,7 @@ final class HomeController extends AbstractController
         foreach ($texteRepository->search($q, 10) as $texte) {
             $items[] = [
                 'type' => 'texte',
-                'label' => $texte->getObjet() ?? $texte->getTitre(),
+                'label' => $texte->getTitreAffiche(),
                 'sub' => $texte->getSynthese(),
                 'url' => $this->generateUrl('app_texte_show', ['id' => $texte->getId()]),
             ];
@@ -83,7 +83,8 @@ final class HomeController extends AbstractController
 
         $textes = array_map(static fn (Texte $texte): array => [
             'id' => $texte->getId(),
-            'titre' => $texte->getObjet() ?? $texte->getTitre(),
+            'titre' => $texte->getTitreAffiche(),
+            'titreLong' => $texte->getTitreLong(),
             'synthese' => $texte->getSynthese(),
             'themes' => array_map(static fn (Tag $tag): array => [
                 'label' => $tag->getNom(),

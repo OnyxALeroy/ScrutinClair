@@ -96,7 +96,7 @@
                     {% for texte in textes %}
                         <li>
                             <a href="{{ path('app_texte_show', { id: texte.id }) }}">
-                                <span class="results__titre">{{ texte.objet ?? texte.titre }}</span>
+                                <span class="results__titre">{{ texte.titreAffiche }}</span>
                                 {% if texte.synthese %}<span class="synthese">{{ texte.synthese }}</span>{% endif %}
                             </a>
                         </li>

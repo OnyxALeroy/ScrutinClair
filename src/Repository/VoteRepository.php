@@ -35,12 +35,12 @@ class VoteRepository extends ServiceEntityRepository
     /**
      * Votes d'un groupe agrégés par texte, du plus récent au plus ancien.
      *
-     * @return list<array{texteId: int, objet: ?string, titre: ?string, pour: int, contre: int, abstention: int, total: int}>
+     * @return list<array{texteId: int, objet: ?string, titre: ?string, titreCourt: ?string, pour: int, contre: int, abstention: int, total: int}>
      */
     public function statistiquesParTextePourGroupe(GroupePolitique $groupe, int $limit = 20, int $offset = 0): array
     {
         $rows = $this->createQueryBuilder('v')
-            ->select('t.id AS texteId', 't.objet AS objet', 't.titre AS titre')
+            ->select('t.id AS texteId', 't.objet AS objet', 't.titre AS titre', 't.titreCourt AS titreCourt')
             ->addSelect("SUM(CASE WHEN v.statut = 'Pour' THEN 1 ELSE 0 END) AS pour")
             ->addSelect("SUM(CASE WHEN v.statut = 'Contre' THEN 1 ELSE 0 END) AS contre")
             ->addSelect("SUM(CASE WHEN v.statut = 'Abstention' THEN 1 ELSE 0 END) AS abstention")
@@ -51,6 +51,7 @@ class VoteRepository extends ServiceEntityRepository
             ->groupBy('t.id')
             ->addGroupBy('t.objet')
             ->addGroupBy('t.titre')
+            ->addGroupBy('t.titreCourt')
             ->orderBy('t.id', 'DESC')
             ->setFirstResult($offset)
             ->setMaxResults($limit)
@@ -61,6 +62,7 @@ class VoteRepository extends ServiceEntityRepository
             'texteId' => (int) $row['texteId'],
             'objet' => $row['objet'],
             'titre' => $row['titre'],
+            'titreCourt' => $row['titreCourt'],
             'pour' => (int) $row['pour'],
             'contre' => (int) $row['contre'],
             'abstention' => (int) $row['abstention'],

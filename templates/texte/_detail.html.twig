@@ -1,5 +1,6 @@
 {% if texte %}
     {% set objetBas = (texte.objet ?? texte.titre ?? '')|lower %}
+    {% set aTitreCourt = texte.titreCourt is not null and texte.titreCourt is not empty %}
 
     <article>
         <header class="texte-header">
@@ -21,7 +22,14 @@
                 {% endif %}
             </div>
 
-            <h1>{{ texte.objet ?? texte.titre }}</h1>
+            <h1>{{ texte.titreAffiche }}</h1>
+
+            {% if aTitreCourt and texte.titreCourt != texte.titreLong %}
+                <p class="texte-titre-officiel">
+                    <span class="texte-titre-officiel__label">Texte officiel</span>
+                    <span class="texte-titre-officiel__valeur">{{ texte.titreLong }}</span>
+                </p>
+            {% endif %}
 
             {% if texte.themes is not empty %}
                 <div class="theme-chips">

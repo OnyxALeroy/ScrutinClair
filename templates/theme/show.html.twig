@@ -30,7 +30,7 @@
                 {% for texte in textes %}
                     <li class="scrutin">
                         <a class="scrutin__titre" href="{{ path('app_texte_show', { id: texte.id }) }}">
-                            {{ texte.objet ?? texte.titre }}
+                            {{ texte.titreAffiche }}
                         </a>
                     </li>
                 {% endfor %}

@@ -784,6 +784,28 @@ svg {
     margin: 0.85rem 0 0.9rem;
 }
 
+.texte-titre-officiel {
+    margin: -0.3rem 0 1.1rem;
+    font-size: 0.86rem;
+    line-height: 1.55;
+    color: var(--muted, #6b7280);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.45rem;
+}
+
+.texte-titre-officiel__label {
+    display: inline-block;
+    padding: 0.08rem 0.5rem;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 999px;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--faint, #9ca3af);
+}
+
 .badges {
     display: flex;
     flex-wrap: wrap;

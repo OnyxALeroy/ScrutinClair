@@ -50,7 +50,7 @@
                 {% for vote in votes %}
                     <li class="vote vote--{{ vote.statut|lower }}">
                         <a class="vote__nom" href="{{ path('app_texte_show', { id: vote.texte.id }) }}">
-                            {{ vote.texte.objet ?? vote.texte.titre }}
+                            {{ vote.texte.titreAffiche }}
                         </a>
                         <span class="vote__statut">{{ vote.statut }}</span>
                     </li>

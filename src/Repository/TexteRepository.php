@@ -28,7 +28,7 @@ class TexteRepository extends ServiceEntityRepository
         }
 
         return $this->createQueryBuilder('t')
-            ->andWhere('LOWER(t.titre) LIKE LOWER(:q) OR LOWER(t.objet) LIKE LOWER(:q) OR LOWER(t.synthese) LIKE LOWER(:q)')
+            ->andWhere('LOWER(t.titre) LIKE LOWER(:q) OR LOWER(t.objet) LIKE LOWER(:q) OR LOWER(t.titreCourt) LIKE LOWER(:q) OR LOWER(t.synthese) LIKE LOWER(:q)')
             ->setParameter('q', '%' . $q . '%')
             ->orderBy('t.id', 'ASC')
             ->setMaxResults($limit)
@@ -106,6 +106,45 @@ class TexteRepository extends ServiceEntityRepository
         return $qb->getQuery()->getResult();
     }
 
+    /**
+     * Textes restant à raccourcir : ceux qui n'ont pas encore de titre court.
+     *
+     * @return list<Texte>
+     */
+    public function findPourRenommage(bool $force = false, ?int $limit = null, ?string $uid = null, ?int $shard = null, ?int $nbShards = null): array
+    {
+        $qb = $this->createQueryBuilder('t')->orderBy('t.id', 'ASC');
+
+        if (!$force) {
+            $qb->andWhere('t.titreCourt IS NULL');
+        }
+
+        if ($uid !== null && $uid !== '') {
+            $qb->andWhere('t.uidScrutin = :uid')->setParameter('uid', $uid);
+        }
+
+        if ($shard !== null && $nbShards !== null && $nbShards > 0) {
+            $qb->andWhere('MOD(t.id, :nbShards) = :shard')
+                ->setParameter('nbShards', $nbShards)
+                ->setParameter('shard', $shard);
+        }
+
+        if ($limit !== null && $limit > 0) {
+            $qb->setMaxResults($limit);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    public function compterAvecTitreCourt(): int
+    {
+        return (int) $this->createQueryBuilder('t')
+            ->select('COUNT(t.id)')
+            ->where('t.titreCourt IS NOT NULL')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
     public function compterTotal(): int
     {
         return (int) $this->createQueryBuilder('t')
@@ -170,6 +209,84 @@ class TexteRepository extends ServiceEntityRepository
             ->andWhere('theme = :theme')
             ->setParameter('theme', $tag)
             ->select('COUNT(t.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * Textes nécessitant au moins une étape du traitement IA.
+     * Si force=true, tous les textes sont retournés.
+     *
+     * @return list<Texte>
+     */
+    public function findPourTraitementIa(bool $force = false, bool $faireTitre = true, bool $faireTags = true, bool $faireResume = true, ?int $limit = null, ?string $uid = null, ?int $shard = null, ?int $nbShards = null): array
+    {
+        $qb = $this->createQueryBuilder('t')->orderBy('t.id', 'ASC');
+
+        if ($uid !== null && $uid !== '') {
+            $qb->andWhere('t.uidScrutin = :uid')->setParameter('uid', $uid);
+        }
+
+        if ($shard !== null && $nbShards !== null && $nbShards > 0) {
+            $qb->andWhere('MOD(t.id, :nbShards) = :shard')
+                ->setParameter('nbShards', $nbShards)
+                ->setParameter('shard', $shard);
+        }
+
+        if (!$force) {
+            $conditions = [];
+            if ($faireTitre) {
+                $conditions[] = 't.titreCourt IS NULL';
+            }
+            if ($faireTags) {
+                $conditions[] = 'tag.id IS NULL';
+                $qb->leftJoin('t.themes', 'tag');
+            }
+            if ($faireResume) {
+                $conditions[] = 't.vulgarisation IS NULL';
+            }
+
+            if ($conditions === []) {
+                return [];
+            }
+
+            $qb->andWhere('(' . implode(' OR ', $conditions) . ')');
+            if ($faireTags) {
+                $qb->groupBy('t.id');
+            }
+        }
+
+        if ($limit !== null && $limit > 0) {
+            $qb->setMaxResults($limit);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    public function compterSansTitreCourt(): int
+    {
+        return (int) $this->createQueryBuilder('t')
+            ->select('COUNT(t.id)')
+            ->andWhere('t.titreCourt IS NULL')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function compterSansTags(): int
+    {
+        return (int) $this->createQueryBuilder('t')
+            ->select('COUNT(DISTINCT t.id)')
+            ->leftJoin('t.themes', 'tag')
+            ->andWhere('tag.id IS NULL')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function compterSansVulgarisation(): int
+    {
+        return (int) $this->createQueryBuilder('t')
+            ->select('COUNT(t.id)')
+            ->andWhere('t.vulgarisation IS NULL')
             ->getQuery()
             ->getSingleScalarResult();
     }
