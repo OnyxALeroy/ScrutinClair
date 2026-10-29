@@ -8,7 +8,7 @@
     {% endfor %}
 
     <section class="hero">
-        <span class="hero__eyebrow">Assemblée nationale</span>
+        <span class="hero__eyebrow">Assemblée nationale & Sénat</span>
         <h1>Comprendre la vie parlementaire <span class="hero__accent">en clair</span></h1>
         <p>Cherchez un texte de loi, un groupe politique ou une personnalité, et découvrez l’essentiel expliqué simplement.</p>
 
@@ -77,7 +77,7 @@
                                 <span class="member__body">
                                     <span class="member__nom">{{ membre.nomComplet }}</span>
                                     <span class="member__meta">
-                                        {% if membre.groupePolitique %}{{ membre.groupePolitique.libelleCourt }}{% elseif membre.fonction %}{{ membre.fonction }}{% endif %}
+                                        {% if membre.groupePolitique %}{{ membre.groupePolitique.libelleCourt }}{% elseif membre.groupePolitiqueSenat %}{{ membre.groupePolitiqueSenat.libelleCourt }} <small>Sénat</small>{% elseif membre.fonction %}{{ membre.fonction }}{% endif %}
                                         {% if membre.circonscription %} · {{ membre.circonscription }}{% endif %}
                                     </span>
                                 </span>

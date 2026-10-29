@@ -73,9 +73,17 @@ final class PersonnalitePolitiqueController extends AbstractController
     }
 
     #[Route('/personnalites/{uid}/photo', name: 'app_personnalites_photo', methods: ['GET'], requirements: ['uid' => '[A-Za-z0-9]+'])]
-    public function photo(string $uid, DeputePhotoCache $photoCache): Response
-    {
-        $path = $photoCache->ensure($uid);
+    public function photo(
+        string $uid,
+        DeputePhotoCache $photoCache,
+        PersonnalitePolitiqueRepository $personnaliteRepository,
+    ): Response {
+        $personnalite = $personnaliteRepository->findOneBy(['uid' => $uid]);
+        if ($personnalite === null) {
+            throw $this->createNotFoundException('Cette personnalité politique est introuvable.');
+        }
+
+        $path = $photoCache->ensure($uid, $personnalite->getPhotoUrl());
         if ($path === null) {
             throw $this->createNotFoundException('Photo introuvable pour cette personnalité.');
         }

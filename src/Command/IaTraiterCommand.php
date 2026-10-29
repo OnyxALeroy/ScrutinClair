@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\Entity\Texte;
+use App\Enum\Chambre;
 use App\Enum\Theme;
 use App\Repository\TagRepository;
 use App\Repository\TexteRepository;
@@ -50,7 +51,8 @@ final class IaTraiterCommand extends Command
             ->addOption('skip-titre', null, InputOption::VALUE_NONE, 'Ne pas générer le titre court')
             ->addOption('skip-tags', null, InputOption::VALUE_NONE, 'Ne pas attribuer les tags')
             ->addOption('skip-resume', null, InputOption::VALUE_NONE, 'Ne pas générer le résumé/vulgarisation')
-            ->addOption('status', null, InputOption::VALUE_NONE, 'Affiche uniquement les compteurs');
+            ->addOption('status', null, InputOption::VALUE_NONE, 'Affiche uniquement les compteurs')
+            ->addOption('chambre', null, InputOption::VALUE_REQUIRED, 'Filtrer par chambre : AN, SENAT ou all', 'AN');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -73,9 +75,17 @@ final class IaTraiterCommand extends Command
         $faireResume = !(bool) $input->getOption('skip-resume');
         $limit = $input->getOption('limit') !== null ? (int) $input->getOption('limit') : null;
         $uid = $input->getOption('uid');
+        try {
+            $chambre = Chambre::depuisFiltre((string) $input->getOption('chambre'));
+        } catch (\InvalidArgumentException $e) {
+            $io->error($e->getMessage());
+
+            return Command::FAILURE;
+        }
+
         [$shard, $nbShards] = $this->decouperShards($input->getOption('shard'));
 
-        $textes = $this->textes->findPourTraitementIa($force, $faireTitre, $faireTags, $faireResume, $limit, $uid, $shard, $nbShards);
+        $textes = $this->textes->findPourTraitementIa($force, $faireTitre, $faireTags, $faireResume, $limit, $uid, $shard, $nbShards, $chambre);
         $total = \count($textes);
 
         $io->title('Traitement IA unifié : titre court + tags + résumé');

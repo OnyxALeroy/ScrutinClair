@@ -1,17 +1,18 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ personnalite.nomComplet }} — ScrutinClair{% endblock %}
-{% block description %}{{ personnalite.nomComplet }}{% if personnalite.groupePolitique %}, {{ personnalite.groupePolitique.nom }}{% endif %} : votes, propositions et projets de loi à l'Assemblée nationale.{% endblock %}
+{% block description %}{{ personnalite.nomComplet }}{% if personnalite.groupePolitique %}, {{ personnalite.groupePolitique.nom }}{% elseif personnalite.groupePolitiqueSenat %}, {{ personnalite.groupePolitiqueSenat.nom }}{% endif %} : votes, propositions et projets de loi.{% endblock %}
 
 {% block body %}
     {% set age = personnalite.dateNaissance ? date().diff(personnalite.dateNaissance).y : null %}
+    {% set groupePrincipal = personnalite.groupePolitique ?? personnalite.groupePolitiqueSenat %}
 
     <a class="backlink" href="{{ path('app_personnalites') }}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
         Toutes les personnalités
     </a>
 
-    <header class="detail-head detail-head--person" style="--groupe-couleur: {{ personnalite.groupePolitique ? personnalite.groupePolitique.couleur : '#9ca3af' }}">
+    <header class="detail-head detail-head--person" style="--groupe-couleur: {{ groupePrincipal ? groupePrincipal.couleur : '#9ca3af' }}">
         {{ include('components/_avatar.html.twig', { personne: personnalite }) }}
         <div class="detail-head__body">
             <h1>{{ personnalite.nomComplet }}</h1>
@@ -20,8 +21,13 @@
                     <a class="chip" href="{{ path('app_partis_show', { uid: personnalite.groupePolitique.uid }) }}"
                        style="--groupe-couleur: {{ personnalite.groupePolitique.couleur }}">{{ personnalite.groupePolitique.libelleCourt }}</a>
                 {% endif %}
+                {% if personnalite.groupePolitiqueSenat %}
+                    <a class="chip" href="{{ path('app_partis_show', { uid: personnalite.groupePolitiqueSenat.uid }) }}"
+                       style="--groupe-couleur: {{ personnalite.groupePolitiqueSenat.couleur }}">{{ personnalite.groupePolitiqueSenat.libelleCourt }} <small>Sénat</small></a>
+                {% endif %}
                 {% if personnalite.fonction %}<span>{{ personnalite.fonction }}</span>{% endif %}
                 {% if personnalite.circonscription %}<span>·</span><span>{{ personnalite.circonscription }}</span>{% endif %}
+                {% if personnalite.circonscriptionSenat %}<span>·</span><span>{{ personnalite.circonscriptionSenat }} <small>Sénat</small></span>{% endif %}
             </p>
             <dl class="facts">
                 {% if personnalite.dateNaissance %}

@@ -1,11 +1,11 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Les personnalités politiques — ScrutinClair{% endblock %}
-{% block description %}Retrouvez les députés et les membres du gouvernement : leurs votes, propositions et projets de loi.{% endblock %}
+{% block description %}Retrouvez les députés, les sénateurs et les membres du gouvernement : leurs votes, propositions et projets de loi.{% endblock %}
 
 {% block body %}
     <header class="page-head">
-        <span class="hero__eyebrow">Assemblée nationale</span>
+        <span class="hero__eyebrow">Assemblée nationale & Sénat</span>
         <h1>Les personnalités politiques</h1>
         <p>Recherchez une personnalité par son nom et découvrez ses votes, ses propositions et ses projets de loi.</p>
 
@@ -38,7 +38,7 @@
                         <span class="member__body">
                             <span class="member__nom">{{ membre.nomComplet }}</span>
                             <span class="member__meta">
-                                {% if membre.groupePolitique %}{{ membre.groupePolitique.libelleCourt }}{% elseif membre.fonction %}{{ membre.fonction }}{% endif %}
+                                {% if membre.groupePolitique %}{{ membre.groupePolitique.libelleCourt }}{% elseif membre.groupePolitiqueSenat %}{{ membre.groupePolitiqueSenat.libelleCourt }} <small>Sénat</small>{% elseif membre.fonction %}{{ membre.fonction }}{% endif %}
                                 {% if membre.circonscription %} · {{ membre.circonscription }}{% endif %}
                             </span>
                         </span>

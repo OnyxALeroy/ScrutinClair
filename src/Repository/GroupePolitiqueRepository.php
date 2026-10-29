@@ -45,7 +45,8 @@ class GroupePolitiqueRepository extends ServiceEntityRepository
     public function findAllOrdered(): array
     {
         return $this->createQueryBuilder('g')
-            ->orderBy('g.ordre', 'ASC')
+            ->orderBy('g.chambre', 'ASC')
+            ->addOrderBy('g.ordre', 'ASC')
             ->addOrderBy('g.acronyme', 'ASC')
             ->getQuery()
             ->getResult();

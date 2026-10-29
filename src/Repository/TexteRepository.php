@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Entity\Tag;
 use App\Entity\Texte;
+use App\Enum\Chambre;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -43,7 +44,7 @@ class TexteRepository extends ServiceEntityRepository
      *
      * @return Texte[]
      */
-    public function findPourVulgarisation(bool $force = false, ?int $limit = null, ?string $uid = null, ?string $type = null, ?int $shard = null, ?int $nbShards = null): array
+    public function findPourVulgarisation(bool $force = false, ?int $limit = null, ?string $uid = null, ?string $type = null, ?int $shard = null, ?int $nbShards = null, ?Chambre $chambre = null): array
     {
         $qb = $this->createQueryBuilder('t')->orderBy('t.id', 'ASC');
 
@@ -69,6 +70,10 @@ class TexteRepository extends ServiceEntityRepository
                 ->setParameter('shard', $shard);
         }
 
+        if ($chambre !== null) {
+            $qb->andWhere('t.chambre = :chambre')->setParameter('chambre', $chambre->value);
+        }
+
         if ($limit !== null && $limit > 0) {
             $qb->setMaxResults($limit);
         }
@@ -81,7 +86,7 @@ class TexteRepository extends ServiceEntityRepository
      *
      * @return list<Texte>
      */
-    public function findPourTaguage(bool $force = false, ?int $limit = null, ?string $uid = null, ?int $shard = null, ?int $nbShards = null): array
+    public function findPourTaguage(bool $force = false, ?int $limit = null, ?string $uid = null, ?int $shard = null, ?int $nbShards = null, ?Chambre $chambre = null): array
     {
         $qb = $this->createQueryBuilder('t')->orderBy('t.id', 'ASC');
 
@@ -99,6 +104,10 @@ class TexteRepository extends ServiceEntityRepository
                 ->setParameter('shard', $shard);
         }
 
+        if ($chambre !== null) {
+            $qb->andWhere('t.chambre = :chambre')->setParameter('chambre', $chambre->value);
+        }
+
         if ($limit !== null && $limit > 0) {
             $qb->setMaxResults($limit);
         }
@@ -111,7 +120,7 @@ class TexteRepository extends ServiceEntityRepository
      *
      * @return list<Texte>
      */
-    public function findPourRenommage(bool $force = false, ?int $limit = null, ?string $uid = null, ?int $shard = null, ?int $nbShards = null): array
+    public function findPourRenommage(bool $force = false, ?int $limit = null, ?string $uid = null, ?int $shard = null, ?int $nbShards = null, ?Chambre $chambre = null): array
     {
         $qb = $this->createQueryBuilder('t')->orderBy('t.id', 'ASC');
 
@@ -127,6 +136,10 @@ class TexteRepository extends ServiceEntityRepository
             $qb->andWhere('MOD(t.id, :nbShards) = :shard')
                 ->setParameter('nbShards', $nbShards)
                 ->setParameter('shard', $shard);
+        }
+
+        if ($chambre !== null) {
+            $qb->andWhere('t.chambre = :chambre')->setParameter('chambre', $chambre->value);
         }
 
         if ($limit !== null && $limit > 0) {
@@ -268,7 +281,7 @@ class TexteRepository extends ServiceEntityRepository
      *
      * @return list<Texte>
      */
-    public function findPourTraitementIa(bool $force = false, bool $faireTitre = true, bool $faireTags = true, bool $faireResume = true, ?int $limit = null, ?string $uid = null, ?int $shard = null, ?int $nbShards = null): array
+    public function findPourTraitementIa(bool $force = false, bool $faireTitre = true, bool $faireTags = true, bool $faireResume = true, ?int $limit = null, ?string $uid = null, ?int $shard = null, ?int $nbShards = null, ?Chambre $chambre = null): array
     {
         $qb = $this->createQueryBuilder('t')->orderBy('t.id', 'ASC');
 
@@ -303,6 +316,10 @@ class TexteRepository extends ServiceEntityRepository
             if ($faireTags) {
                 $qb->groupBy('t.id');
             }
+        }
+
+        if ($chambre !== null) {
+            $qb->andWhere('t.chambre = :chambre')->setParameter('chambre', $chambre->value);
         }
 
         if ($limit !== null && $limit > 0) {

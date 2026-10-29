@@ -5,6 +5,7 @@ use App\Entity\Gouvernement;
 use App\Entity\GroupePolitique;
 use App\Entity\MembreGouvernement;
 use App\Entity\PersonnalitePolitique;
+use App\Enum\Chambre;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Finder\Finder;
@@ -72,6 +73,7 @@ class PersonnalitePolitiqueImporter
                 $groupe->setUid($uid);
             }
 
+            $groupe->setChambre(Chambre::AssembleeNationale);
             $groupe->setNom($nom);
             $groupe->setAcronyme($acronyme);
             $groupe->setCouleur(GroupePolitique::couleurPour($acronyme));

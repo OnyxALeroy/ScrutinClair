@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Entity\GroupePolitique;
 use App\Entity\PersonnalitePolitique;
+use App\Enum\Chambre;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -60,8 +61,10 @@ class PersonnalitePolitiqueRepository extends ServiceEntityRepository
      */
     public function findByGroupe(GroupePolitique $groupe): array
     {
+        $champ = $groupe->getChambre() === Chambre::Senat ? 'p.groupePolitiqueSenat' : 'p.groupePolitique';
+
         return $this->createQueryBuilder('p')
-            ->andWhere('p.groupePolitique = :groupe')
+            ->andWhere($champ . ' = :groupe')
             ->setParameter('groupe', $groupe)
             ->orderBy('p.nom', 'ASC')
             ->addOrderBy('p.prenom', 'ASC')

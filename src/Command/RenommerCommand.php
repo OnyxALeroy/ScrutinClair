@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\Entity\Texte;
+use App\Enum\Chambre;
 use App\Repository\TexteRepository;
 use App\Service\TitreCourtGenerator;
 use Doctrine\ORM\EntityManagerInterface;
@@ -41,7 +42,8 @@ final class RenommerCommand extends Command
             ->addOption('uid', null, InputOption::VALUE_REQUIRED, 'Traiter un seul scrutin (uidScrutin)')
             ->addOption('shard', null, InputOption::VALUE_REQUIRED, 'Traitement réparti : « i/n » (ex. 0/2)')
             ->addOption('force', null, InputOption::VALUE_NONE, 'Retraiter les textes déjà renommés')
-            ->addOption('status', null, InputOption::VALUE_NONE, 'Affiche uniquement les compteurs');
+            ->addOption('status', null, InputOption::VALUE_NONE, 'Affiche uniquement les compteurs')
+            ->addOption('chambre', null, InputOption::VALUE_REQUIRED, 'Filtrer par chambre : AN, SENAT ou all', 'AN');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -55,9 +57,17 @@ final class RenommerCommand extends Command
         $force = (bool) $input->getOption('force');
         $limit = $input->getOption('limit') !== null ? (int) $input->getOption('limit') : null;
         $uid = $input->getOption('uid');
+        try {
+            $chambre = Chambre::depuisFiltre((string) $input->getOption('chambre'));
+        } catch (\InvalidArgumentException $e) {
+            $io->error($e->getMessage());
+
+            return Command::FAILURE;
+        }
+
         [$shard, $nbShards] = $this->decouperShards($input->getOption('shard'));
 
-        $textes = $this->textes->findPourRenommage($force, $limit, $uid, $shard, $nbShards);
+        $textes = $this->textes->findPourRenommage($force, $limit, $uid, $shard, $nbShards, $chambre);
         $total = \count($textes);
 
         $io->title('Génération des titres courts (grand public)');

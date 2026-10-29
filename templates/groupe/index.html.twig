@@ -1,13 +1,13 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Les groupes politiques — ScrutinClair{% endblock %}
-{% block description %}Tous les groupes politiques de l'Assemblée nationale : effectifs, position et votes.{% endblock %}
+{% block description %}Tous les groupes politiques de l'Assemblée nationale et du Sénat : effectifs, position et votes.{% endblock %}
 
 {% block body %}
     <header class="page-head">
-        <span class="hero__eyebrow">Assemblée nationale</span>
+        <span class="hero__eyebrow">Assemblée nationale & Sénat</span>
         <h1>Les groupes politiques</h1>
-        <p>De la gauche à la droite de l'hémicycle, découvrez les groupes de la 17<sup>e</sup> législature, leurs effectifs et leurs votes.</p>
+        <p>De la gauche à la droite de l'hémicycle, découvrez les groupes parlementaires, leurs effectifs et leurs votes.</p>
     </header>
 
     <section class="groupes" aria-label="Groupes politiques">
@@ -15,6 +15,7 @@
             <a class="groupe-card" href="{{ path('app_partis_show', { uid: groupe.uid }) }}"
                style="--groupe-couleur: {{ groupe.couleur }}">
                 <span class="groupe-card__chip">{{ groupe.acronyme }}</span>
+                <span class="badge badge--chambre">{{ groupe.chambre.label }}</span>
                 <span class="groupe-card__nom">{{ groupe.nom }}</span>
                 <span class="groupe-card__meta">{{ groupe.personnalites|length }} membre{{ groupe.personnalites|length > 1 ? 's' : '' }}</span>
                 <span class="groupe-card__chevron" aria-hidden="true">

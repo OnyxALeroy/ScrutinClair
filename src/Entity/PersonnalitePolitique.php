@@ -30,11 +30,26 @@ class PersonnalitePolitique
     #[ORM\Column(length: 255)]
     private ?string $uid = null;
 
+    #[ORM\Column(length: 10, nullable: true, unique: true)]
+    private ?string $uidSenat = null;
+
     #[ORM\ManyToOne(inversedBy: 'personnalites')]
     private ?GroupePolitique $groupePolitique = null;
 
+    #[ORM\ManyToOne]
+    private ?GroupePolitique $groupePolitiqueSenat = null;
+
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $circonscription = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $circonscriptionSenat = null;
+
+    #[ORM\Column(length: 500, nullable: true)]
+    private ?string $photoUrl = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $photoCredit = null;
 
     #[ORM\Column(type: 'date_immutable', nullable: true)]
     private ?\DateTimeImmutable $dateNaissance = null;
@@ -182,6 +197,66 @@ class PersonnalitePolitique
     public function setUid(string $uid): static
     {
         $this->uid = $uid;
+
+        return $this;
+    }
+
+    public function getUidSenat(): ?string
+    {
+        return $this->uidSenat;
+    }
+
+    public function setUidSenat(?string $uidSenat): static
+    {
+        $this->uidSenat = $uidSenat;
+
+        return $this;
+    }
+
+    public function getGroupePolitiqueSenat(): ?GroupePolitique
+    {
+        return $this->groupePolitiqueSenat;
+    }
+
+    public function setGroupePolitiqueSenat(?GroupePolitique $groupePolitiqueSenat): static
+    {
+        $this->groupePolitiqueSenat = $groupePolitiqueSenat;
+
+        return $this;
+    }
+
+    public function getCirconscriptionSenat(): ?string
+    {
+        return $this->circonscriptionSenat;
+    }
+
+    public function setCirconscriptionSenat(?string $circonscriptionSenat): static
+    {
+        $this->circonscriptionSenat = $circonscriptionSenat;
+
+        return $this;
+    }
+
+    public function getPhotoUrl(): ?string
+    {
+        return $this->photoUrl;
+    }
+
+    public function setPhotoUrl(?string $photoUrl): static
+    {
+        $this->photoUrl = $photoUrl;
+
+        return $this;
+    }
+
+    public function getPhotoCredit(): ?string
+    {
+        return $this->photoCredit;
+    }
+
+    public function setPhotoCredit(?string $photoCredit): static
+    {
+        $this->photoCredit = $photoCredit;
 
         return $this;
     }

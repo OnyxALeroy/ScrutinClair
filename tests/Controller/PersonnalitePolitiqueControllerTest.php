@@ -107,7 +107,9 @@ final class PersonnalitePolitiqueControllerTest extends WebTestCase
     public function testPhotoServesCachedFile(): void
     {
         $client = static::createClient();
-        $uid = 'PA' . bin2hex(random_bytes(6));
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $personnalite = $this->createPersonnalite($em, bin2hex(random_bytes(6)));
+        $uid = $personnalite->getUid();
         $path = static::getContainer()->getParameter('kernel.project_dir') . '/var/photos_deputes/' . $uid . '.jpg';
 
         if (!is_dir(\dirname($path))) {

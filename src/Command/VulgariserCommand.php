@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\Entity\Texte;
+use App\Enum\Chambre;
 use App\Enum\Theme;
 use App\Repository\TagRepository;
 use App\Repository\TexteRepository;
@@ -42,7 +43,8 @@ final class VulgariserCommand extends Command
             ->addOption('shard', null, InputOption::VALUE_REQUIRED, 'Traitement réparti : « i/n » (ex. 0/2)')
             ->addOption('force', null, InputOption::VALUE_NONE, 'Retraiter les textes déjà vulgarisés')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Résout les sources sans appeler l\'IA')
-            ->addOption('status', null, InputOption::VALUE_NONE, 'Affiche uniquement les compteurs d\'avancement');
+            ->addOption('status', null, InputOption::VALUE_NONE, 'Affiche uniquement les compteurs d\'avancement')
+            ->addOption('chambre', null, InputOption::VALUE_REQUIRED, 'Filtrer par chambre : AN, SENAT ou all', 'AN');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -58,6 +60,14 @@ final class VulgariserCommand extends Command
         $limit = $input->getOption('limit') !== null ? (int) $input->getOption('limit') : null;
         $uid = $input->getOption('uid');
         $type = $input->getOption('type');
+        try {
+            $chambre = Chambre::depuisFiltre((string) $input->getOption('chambre'));
+        } catch (\InvalidArgumentException $e) {
+            $io->error($e->getMessage());
+
+            return Command::FAILURE;
+        }
+
 
         if (!$dryRun && !$this->ai->isEnabled()) {
             $io->error('La génération IA est désactivée sur cette instance (AI_ENABLED=0) : aucun rapport ne peut être généré.');
@@ -68,7 +78,7 @@ final class VulgariserCommand extends Command
 
         [$shard, $nbShards] = $this->decouperShards($input->getOption('shard'));
 
-        $textes = $this->textes->findPourVulgarisation($force, $limit, $uid, $type, $shard, $nbShards);
+        $textes = $this->textes->findPourVulgarisation($force, $limit, $uid, $type, $shard, $nbShards, $chambre);
         $total = \count($textes);
 
         $io->title($dryRun ? 'Vulgarisation — résolution des sources (dry-run)' : 'Vulgarisation des textes');

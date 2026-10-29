@@ -4,6 +4,7 @@ namespace App\Service;
 use App\Entity\Texte;
 use App\Entity\PersonnalitePolitique;
 use App\Entity\Vote;
+use App\Enum\Chambre;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Finder\Finder;
@@ -98,10 +99,15 @@ class AssembleeNationaleImporter
                 $texte->setObjet($donneesScrutin['objet']['libelle'] ?? null);
                 $texte->setSynthese($donneesScrutin['objet']['dossierLegislatif']['libelle'] ?? null);
                 $texte->setUidScrutin($uid);
+                $texte->setChambre(Chambre::AssembleeNationale);
                 $texte->setDossierRef($donneesScrutin['objet']['dossierLegislatif']['dossierRef'] ?? null);
                 $texte->setLien($this->construireLienScrutin($uid));
                 $sort = $donneesScrutin['sort']['libelle'] ?? 'Résultat inconnu';
                 $texte->setDescription('Résultat du vote : ' . $sort);
+                $texte->setResultat($this->normaliserResultat($donneesScrutin['sort']['code'] ?? null));
+                $texte->setDateScrutin($this->dateOuNull($donneesScrutin['dateScrutin'] ?? null));
+                $nonVotants = $donneesScrutin['syntheseVote']['decompte']['nonVotants'] ?? null;
+                $texte->setNonVotants(is_numeric($nonVotants) ? (int) $nonVotants : null);
 
                 $this->entityManager->persist($texte);
                 $compteurTextes++;
@@ -186,6 +192,28 @@ class AssembleeNationaleImporter
                 $io->newLine(2); // Saute deux lignes pour la lisibilité
                 $io->writeln("<info>Bilan final : $compteurTextes textes et $compteurVotes votes insérés en base de données.</info>");
             }
+        }
+    }
+
+    private function normaliserResultat(?string $resultat): ?string
+    {
+        if ($resultat === null || $resultat === '') {
+            return null;
+        }
+
+        return ucfirst(mb_strtolower($resultat, 'UTF-8'));
+    }
+
+    private function dateOuNull(mixed $valeur): ?\DateTimeImmutable
+    {
+        if (!is_string($valeur) || $valeur === '') {
+            return null;
+        }
+
+        try {
+            return new \DateTimeImmutable($valeur);
+        } catch (\Exception) {
+            return null;
         }
     }
 

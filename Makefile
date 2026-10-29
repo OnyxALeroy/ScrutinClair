@@ -1,4 +1,4 @@
-.PHONY: help init init-light up up-light down restart shell db-shell diff migrate db-reset cache import import-scrutins import-personnalites import-votes ai-up ai-down ai-status ia-traiter ia-status vulgarise vulgarise-dry vulgarise-limit vulgarise-status vulgarise-full vulgarise-stop test clean
+.PHONY: help init init-light up up-light down restart shell db-shell diff migrate db-reset cache import import-scrutins import-personnalites import-votes import-senat backfill-textes ai-up ai-down ai-status ia-traiter ia-status vulgarise vulgarise-dry vulgarise-limit vulgarise-status vulgarise-full vulgarise-stop test clean
 
 # Variables pour éviter de répéter les noms
 PHP = php
@@ -90,6 +90,12 @@ import-personnalites: ## Lance l'importation des personnalités politiques avec 
 
 import-votes: ## Recrée les votes depuis les JSON sans toucher aux données IA (--no-debug évite l'accumulation SQL en mémoire)
 	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-votes --no-debug
+
+import-senat: ## Importe les sénateurs, groupes et scrutins du Sénat (1Go de RAM)
+	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:import-senat --no-debug
+
+backfill-textes: ## Complète les métadonnées des textes AN depuis les JSON locaux
+	docker compose exec $(PHP) php -d memory_limit=1G bin/console app:backfill-textes-an --no-debug
 
 ## --- IA / Vulgarisation ---
 ai-up: ## Démarre Ollama (GPU), récupère le modèle et active l'IA dans l'application

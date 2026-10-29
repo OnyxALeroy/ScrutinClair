@@ -20,8 +20,9 @@ final class DeputePhotoCache
 
     /**
      * Retourne le chemin local de la photo, en la téléchargeant au besoin.
+     * Une URL explicite (Sénat, gouvernement…) est essayée avant l’URL AN.
      */
-    public function ensure(string $uid): ?string
+    public function ensure(string $uid, ?string $urlExplicite = null): ?string
     {
         $path = $this->cachePath($uid);
         if (is_file($path)) {
@@ -33,8 +34,37 @@ final class DeputePhotoCache
             return null;
         }
 
+        $urls = array_values(array_filter([
+            $urlExplicite,
+            $this->urls->photoUrl($uid),
+        ]));
+
+        foreach (array_unique($urls) as $url) {
+            $contenu = $this->telecharger($url);
+            if ($contenu === null) {
+                continue;
+            }
+
+            $tmp = $path . '.' . bin2hex(random_bytes(6)) . '.tmp';
+            if (false === file_put_contents($tmp, $contenu)) {
+                return null;
+            }
+            if (!rename($tmp, $path)) {
+                @unlink($tmp);
+
+                return null;
+            }
+
+            return $path;
+        }
+
+        return null;
+    }
+
+    private function telecharger(string $url): ?string
+    {
         try {
-            $response = $this->httpClient->request('GET', $this->urls->photoUrl($uid), [
+            $response = $this->httpClient->request('GET', $url, [
                 'timeout' => 15,
                 'max_redirects' => 5,
             ]);
@@ -53,21 +83,7 @@ final class DeputePhotoCache
             return null;
         }
 
-        if (\strlen($content) < 500) {
-            return null;
-        }
-
-        $tmp = $path . '.' . bin2hex(random_bytes(6)) . '.tmp';
-        if (false === file_put_contents($tmp, $content)) {
-            return null;
-        }
-        if (!rename($tmp, $path)) {
-            @unlink($tmp);
-
-            return null;
-        }
-
-        return $path;
+        return \strlen($content) >= 500 ? $content : null;
     }
 
     private function cachePath(string $uid): string

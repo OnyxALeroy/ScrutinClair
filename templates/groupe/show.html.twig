@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ groupe.acronyme }} — {{ groupe.nom }} — ScrutinClair{% endblock %}
-{% block description %}{{ groupe.nom }} ({{ groupe.acronyme }}) : effectif, votes et membres du groupe à l'Assemblée nationale.{% endblock %}
+{% block description %}{{ groupe.nom }} ({{ groupe.acronyme }}) : effectif, votes et membres du groupe {{ groupe.chambre.article }}.{% endblock %}
 
 {% block body %}
     <a class="backlink" href="{{ path('app_partis') }}">
@@ -11,9 +11,10 @@
 
     <header class="detail-head" style="--groupe-couleur: {{ groupe.couleur }}">
         <span class="detail-head__chip">{{ groupe.acronyme }}</span>
+        <span class="badge badge--chambre">{{ groupe.chambre.label }}</span>
         <h1>{{ groupe.nom }}</h1>
         <p class="detail-head__meta">
-            <span>{{ membres|length }} député{{ membres|length > 1 ? 's' : '' }}</span>
+            <span>{{ membres|length }} {{ groupe.chambre.libelleElu }}{{ membres|length > 1 ? 's' : '' }}</span>
             <span>·</span>
             <span>{{ total|number_format(0, ',', ' ') }} scrutin{{ total > 1 ? 's' : '' }} suivis</span>
         </p>

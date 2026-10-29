@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\Chambre;
 use App\Repository\TexteRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -9,6 +10,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: TexteRepository::class)]
+#[ORM\Index(name: 'idx_texte_chambre_date', columns: ['chambre', 'date_scrutin'])]
 class Texte
 {
     #[ORM\Id]
@@ -36,6 +38,18 @@ class Texte
 
     #[ORM\Column(length: 20, nullable: true, unique: true)]
     private ?string $uidScrutin = null;
+
+    #[ORM\Column(length: 8, enumType: Chambre::class, options: ['default' => 'AN'])]
+    private Chambre $chambre = Chambre::AssembleeNationale;
+
+    #[ORM\Column(type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $dateScrutin = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $resultat = null;
+
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    private ?int $nonVotants = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $vulgarisation = null;
@@ -165,6 +179,54 @@ class Texte
     public function setUidScrutin(?string $uidScrutin): static
     {
         $this->uidScrutin = $uidScrutin;
+
+        return $this;
+    }
+
+    public function getChambre(): Chambre
+    {
+        return $this->chambre;
+    }
+
+    public function setChambre(Chambre $chambre): static
+    {
+        $this->chambre = $chambre;
+
+        return $this;
+    }
+
+    public function getDateScrutin(): ?\DateTimeImmutable
+    {
+        return $this->dateScrutin;
+    }
+
+    public function setDateScrutin(?\DateTimeImmutable $dateScrutin): static
+    {
+        $this->dateScrutin = $dateScrutin;
+
+        return $this;
+    }
+
+    public function getResultat(): ?string
+    {
+        return $this->resultat;
+    }
+
+    public function setResultat(?string $resultat): static
+    {
+        $this->resultat = $resultat;
+
+        return $this;
+    }
+
+    public function getNonVotants(): ?int
+    {
+        return $this->nonVotants;
+    }
+
+    public function setNonVotants(?int $nonVotants): static
+    {
+        $this->nonVotants = $nonVotants;
 
         return $this;
     }

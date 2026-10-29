@@ -843,6 +843,12 @@ svg {
     border-color: color-mix(in srgb, var(--primary) 24%, transparent);
 }
 
+.badge--chambre {
+    background: var(--surface-3);
+    color: var(--text-soft);
+    border-color: var(--border-strong);
+}
+
 /* Thèmes politiques -------------------------------------------------------- */
 
 .theme-chips {

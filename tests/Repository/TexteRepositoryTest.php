@@ -3,6 +3,7 @@
 namespace App\Tests\Repository;
 
 use App\Entity\Texte;
+use App\Enum\Chambre;
 use App\Repository\TexteRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -49,12 +50,29 @@ final class TexteRepositoryTest extends KernelTestCase
         self::assertArrayNotHasKey('DLR-TEST-INCONNU', $ids);
     }
 
-    private function createTexte(EntityManagerInterface $em, string $dossierRef, string $objet): Texte
+    public function testFiltersByChamber(): void
+    {
+        self::bootKernel();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $texteAn = $this->createTexte($em, 'DLR-AN-' . bin2hex(random_bytes(4)), 'Texte AN');
+        $texteSenat = $this->createTexte($em, 'DLR-SEN-' . bin2hex(random_bytes(4)), 'Texte Sénat', Chambre::Senat);
+
+        $resultats = static::getContainer()->get(TexteRepository::class)
+            ->findPourTaguage(false, null, null, null, null, Chambre::Senat);
+        $ids = array_map(static fn (Texte $texte): ?int => $texte->getId(), $resultats);
+
+        self::assertContains($texteSenat->getId(), $ids);
+        self::assertNotContains($texteAn->getId(), $ids);
+    }
+
+    private function createTexte(EntityManagerInterface $em, string $dossierRef, string $objet, Chambre $chambre = Chambre::AssembleeNationale): Texte
     {
         $texte = new Texte();
         $texte->setTitre('Titre ' . bin2hex(random_bytes(4)));
         $texte->setObjet($objet);
         $texte->setDossierRef($dossierRef);
+        $texte->setChambre($chambre);
         $em->persist($texte);
         $em->flush();
 

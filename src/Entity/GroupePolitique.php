@@ -2,12 +2,14 @@
 
 namespace App\Entity;
 
+use App\Enum\Chambre;
 use App\Repository\GroupePolitiqueRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: GroupePolitiqueRepository::class)]
+#[ORM\UniqueConstraint(name: 'uniq_groupe_chambre_uid', columns: ['chambre', 'uid'])]
 class GroupePolitique
 {
     /**
@@ -48,9 +50,53 @@ class GroupePolitique
         'NI' => '#868e96',
     ];
 
+    /**
+     * Position des groupes du Sénat sur l'axe gauche-droite.
+     */
+    private const POSITIONS_POLITIQUES_SENAT = [
+        'CRC' => 10,
+        'CRCE' => 10,
+        'CRCE-K' => 10,
+        'GEST' => 20,
+        'SOC' => 30,
+        'SER' => 30,
+        'RDSE' => 40,
+        'UC' => 50,
+        'UCI' => 50,
+        'LREM' => 60,
+        'RTLI' => 70,
+        'UMP' => 80,
+        'REPUBLICAINS' => 80,
+        'NI' => 90,
+        'AUCUN' => 95,
+    ];
+
+    private const COULEURS_SENAT = [
+        'CRC' => '#a83232',
+        'CRCE' => '#a83232',
+        'CRCE-K' => '#a83232',
+        'GEST' => '#2f9e44',
+        'SOC' => '#e64980',
+        'SER' => '#e64980',
+        'RDSE' => '#d9a441',
+        'UC' => '#f08c00',
+        'UCI' => '#f08c00',
+        'LREM' => '#4c6ef5',
+        'RTLI' => '#1c7ed6',
+        'UMP' => '#455491',
+        'REPUBLICAINS' => '#455491',
+        'NI' => '#868e96',
+        'AUCUN' => '#9ca3af',
+    ];
+
     public static function couleurPour(?string $acronyme): string
     {
         return self::COULEURS[$acronyme ?? ''] ?? '#9ca3af';
+    }
+
+    public static function couleurPourSenat(?string $code): string
+    {
+        return self::COULEURS_SENAT[strtoupper((string) $code)] ?? '#9ca3af';
     }
 
     #[ORM\Id]
@@ -60,6 +106,9 @@ class GroupePolitique
 
     #[ORM\Column(length: 255)]
     private ?string $uid = null;
+
+    #[ORM\Column(length: 8, enumType: Chambre::class, options: ['default' => 'AN'])]
+    private Chambre $chambre = Chambre::AssembleeNationale;
 
     #[ORM\Column(length: 255)]
     private ?string $nom = null;
@@ -104,6 +153,18 @@ class GroupePolitique
     public function setUid(string $uid): static
     {
         $this->uid = $uid;
+
+        return $this;
+    }
+
+    public function getChambre(): Chambre
+    {
+        return $this->chambre;
+    }
+
+    public function setChambre(Chambre $chambre): static
+    {
+        $this->chambre = $chambre;
 
         return $this;
     }
@@ -163,6 +224,12 @@ class GroupePolitique
      */
     public function getPositionPolitique(): int
     {
+        if ($this->chambre === Chambre::Senat) {
+            return self::POSITIONS_POLITIQUES_SENAT[strtoupper((string) $this->acronyme)]
+                ?? self::POSITIONS_POLITIQUES_SENAT[strtoupper((string) $this->uid)]
+                ?? ($this->ordre ?? 999);
+        }
+
         return self::POSITIONS_POLITIQUES[$this->acronyme ?? ''] ?? ($this->ordre ?? 999);
     }
 

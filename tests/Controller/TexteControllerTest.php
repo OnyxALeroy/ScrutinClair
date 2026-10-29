@@ -6,6 +6,7 @@ use App\Entity\PersonnalitePolitique;
 use App\Entity\Tag;
 use App\Entity\Texte;
 use App\Entity\Vote;
+use App\Enum\Chambre;
 use App\Service\AiAvailability;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -284,6 +285,26 @@ final class TexteControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('a.vote__nom[href="/personnalites/' . $personnalite->getUid() . '"]');
         self::assertSelectorTextContains('.vote__nom', 'Marie Test ' . $token);
+    }
+
+    public function testSenateTexteDisplaysChamberAndSenators(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $token = bin2hex(random_bytes(6));
+        $texte = $this->createTexte($em, $token);
+        $texte->setChambre(Chambre::Senat);
+        $texte->setLien('https://www.senat.fr/scrutin-public/2024/scr2024-120.html');
+        $em->flush();
+        $this->texteId = $texte->getId();
+
+        $client->request('GET', '/textes/' . $this->texteId);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.badge--chambre', 'Sénat');
+        self::assertSelectorTextContains('body', 'Votes des sénateurs');
+        self::assertSelectorTextContains('.source-link', 'Consulter le scrutin au Sénat');
     }
 
     private function createTexte(EntityManagerInterface $em, string $token): Texte

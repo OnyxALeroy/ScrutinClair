@@ -1,0 +1,96 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ titre is not null ? titre : dossierRef }} — Dossier législatif — ScrutinClair{% endblock %}
+{% block description %}Dossier législatif {{ dossierRef }} — textes, scrutins et initiatives liées.{% endblock %}
+
+{% block body %}
+    <header class="page-head">
+        <span class="hero__eyebrow">Dossier législatif</span>
+        <h1>{{ titre ?? dossierRef }}</h1>
+        <p>Tous les textes et scrutins liés au dossier <strong>{{ dossierRef }}</strong> (Assemblée nationale &amp; Sénat).</p>
+        <p>
+            {% if assembleeUrl %}
+                <a href="{{ assembleeUrl }}" target="_blank" rel="noopener noreferrer">Consulter le document source sur l'Assemblée nationale</a>
+            {% endif %}
+            {% if senatUrl %}
+                {% if assembleeUrl %} · {% endif %}
+                <a href="{{ senatUrl }}" target="_blank" rel="noopener noreferrer">Consulter le dossier au Sénat</a>
+            {% endif %}
+        </p>
+    </header>
+
+    <section class="card">
+        <h2>Textes et scrutins liés</h2>
+
+        <h3>Assemblée nationale ({{ totalAn }})</h3>
+        {% if textesAn is empty %}
+            <p>Aucun texte importé pour l'Assemblée nationale dans ce dossier.</p>
+        {% else %}
+            <ul class="list-unstyled">
+                {% for texte in textesAn %}
+                    <li class="scrutin-item">
+                        <a href="{{ path('app_texte_show', { id: texte.id }) }}">{{ texte.titre ?? texte.objet }}</a>
+                        {% if texte.dateScrutin %}<small>— {{ texte.dateScrutin|date('Y-m-d') }}</small>{% endif %}
+                        {% if texte.dossierRef %} <small>({{ texte.dossierRef }})</small>{% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+
+            {% set maxPagesAn = (totalAn // perPage) + (totalAn % perPage > 0 ? 1 : 0) %}
+            {% if maxPagesAn > 1 %}
+                <nav class="pagination">
+                    {% for p in 1..maxPagesAn %}
+                        <a href="?page_an={{ p }}" class="{{ p == pageAn ? 'is-active' : '' }}">{{ p }}</a>
+                    {% endfor %}
+                </nav>
+            {% endif %}
+        {% endif %}
+
+        <hr/>
+
+        <h3>Sénat ({{ totalSenat }})</h3>
+        {% if textesSenat is empty %}
+            <p>Aucun texte importé pour le Sénat dans ce dossier.</p>
+        {% else %}
+            <ul class="list-unstyled">
+                {% for texte in textesSenat %}
+                    <li class="scrutin-item">
+                        <span class="badge badge--chambre">{{ texte.chambre.label }}</span>
+                        <a href="{{ path('app_texte_show', { id: texte.id }) }}">{{ texte.titre ?? texte.objet }}</a>
+                        {% if texte.dateScrutin %}<small>— {{ texte.dateScrutin|date('Y-m-d') }}</small>{% endif %}
+                        {% if texte.uidScrutin and texte.uidScrutin starts with 'SEN:' %}
+                            {# SEN:scrYYYY-N -> JSON url via SenatUrls #}
+                            {% set parts = texte.uidScrutin|replace({'SEN:':'','scr':''}) %}
+                            {% set year = parts|split('-')|first %}
+                            {% set num = parts|split('-')|last %}
+                            <a href="{{ senatUrl ? senatUrl : '#' }}" class="small">(scrutin)</a>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+
+            {% set maxPagesSen = (totalSenat // perPage) + (totalSenat % perPage > 0 ? 1 : 0) %}
+            {% if maxPagesSen > 1 %}
+                <nav class="pagination">
+                    {% for p in 1..maxPagesSen %}
+                        <a href="?page_senat={{ p }}" class="{{ p == pageSenat ? 'is-active' : '' }}">{{ p }}</a>
+                    {% endfor %}
+                </nav>
+            {% endif %}
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <h2>Initiatives et documents (Assemblée)</h2>
+        {% if initiatives is empty %}
+            <p>Aucun document opendata trouvé pour ce dossier.</p>
+        {% else %}
+            <ul>
+                {% for doc in initiatives %}
+                    <li><a href="{{ doc.lien }}" target="_blank" rel="noopener noreferrer">{{ doc.titre ?? doc.uid }}</a></li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+
+{% endblock %}
