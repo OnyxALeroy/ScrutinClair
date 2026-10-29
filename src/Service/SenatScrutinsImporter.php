@@ -30,7 +30,7 @@ final class SenatScrutinsImporter
     /**
      * @return array{scrutins: int, nouveaux: int, votes: int, ignores: int, anomalies: int}
      */
-    public function importer(int $debut = 2006, ?int $fin = null, ?int $limite = null, bool $force = false): array
+    public function importer(int $debut = 2006, ?int $fin = null, ?int $limite = null, bool $force = false, ?callable $onProgress = null): array
     {
         $fin ??= (int) date('Y');
         $this->preparerRepertoires();
@@ -40,6 +40,19 @@ final class SenatScrutinsImporter
         $groupes = $this->chargerGroupes();
 
         $compteurs = ['scrutins' => 0, 'nouveaux' => 0, 'votes' => 0, 'ignores' => 0, 'anomalies' => 0];
+
+        // First pass: estimate total number of scrutins to process for progress reporting
+        $totalScrutins = 0;
+        for ($annee = $debut; $annee <= $fin; $annee++) {
+            $session = $this->telecharger($this->urls->sessionUrl($annee), $this->cheminSession($annee), 86400);
+            if ($session === null) {
+                continue;
+            }
+            $numeros = $this->numerosScrutins($session, $annee);
+            $totalScrutins += count($numeros);
+        }
+
+        $processed = 0;
 
         for ($annee = $debut; $annee <= $fin; $annee++) {
             $session = $this->telecharger($this->urls->sessionUrl($annee), $this->cheminSession($annee), 86400);
@@ -102,6 +115,12 @@ final class SenatScrutinsImporter
                 }
 
                 usleep(100000);
+                // progress update
+                if ($onProgress !== null && $totalScrutins > 0) {
+                    $processed++;
+                    $pct = (int) floor(($processed / $totalScrutins) * 100);
+                    $onProgress(min(100, $pct));
+                }
             }
         }
 

@@ -32,16 +32,36 @@ final class ImportSenatCommand extends Command
             ->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Nombre maximum de scrutins importés.')
             ->addOption('force', null, InputOption::VALUE_NONE, 'Réimporte les votes déjà présents.')
             ->addOption('skip-personnalites', null, InputOption::VALUE_NONE, 'Ne pas importer les sénateurs et groupes.')
-            ->addOption('skip-scrutins', null, InputOption::VALUE_NONE, 'Ne pas importer les scrutins.');
+            ->addOption('skip-scrutins', null, InputOption::VALUE_NONE, 'Ne pas importer les scrutins.')
+            ->addOption('job-id', null, InputOption::VALUE_REQUIRED, 'ImportJob id to report progress to (internal)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
 
+        $jobId = $input->getOption('job-id');
+
+        // share of the progress bar for each phase, so it never goes backwards
+        $partPersonnalites = $input->getOption('skip-personnalites') ? 0 : ($input->getOption('skip-scrutins') ? 100 : 20);
+
         if (!$input->getOption('skip-personnalites')) {
             $io->section('Sénateurs et groupes');
-            $resultat = $this->personnalites->importer();
+            // pass progress callback when job-id provided (detached mode)
+            $callback = null;
+            if ($jobId !== null) {
+                $em = $this->getApplication()->getKernel()->getContainer()->get('doctrine')->getManager();
+                $callback = function(int $pct) use ($em, $jobId, $partPersonnalites) {
+                    $repo = $em->getRepository(\App\Entity\ImportJob::class);
+                    $job = $repo->find((int) $jobId);
+                    if ($job) {
+                        $job->setProgress(intdiv($pct * $partPersonnalites, 100));
+                        $em->flush();
+                    }
+                };
+            }
+
+            $resultat = $this->personnalites->importer($callback ?? null);
             $io->success(sprintf(
                 '%d sénateurs traités, %d nouveaux, %d groupes.',
                 $resultat['senateurs'],
@@ -56,11 +76,26 @@ final class ImportSenatCommand extends Command
             $fin = max($debut, (int) $input->getOption('to-year'));
             $limite = $input->getOption('limit') !== null ? max(0, (int) $input->getOption('limit')) : null;
 
+            // progress callback for detached mode
+            $scrutinCallback = null;
+            if ($jobId !== null) {
+                $em = $this->getApplication()->getKernel()->getContainer()->get('doctrine')->getManager();
+                $scrutinCallback = function(int $pct) use ($em, $jobId, $partPersonnalites) {
+                    $repo = $em->getRepository(\App\Entity\ImportJob::class);
+                    $job = $repo->find((int) $jobId);
+                    if ($job) {
+                        $job->setProgress($partPersonnalites + intdiv($pct * (100 - $partPersonnalites), 100));
+                        $em->flush();
+                    }
+                };
+            }
+
             $resultat = $this->scrutins->importer(
                 $debut,
                 $fin,
                 $limite,
                 (bool) $input->getOption('force'),
+                $scrutinCallback
             );
 
             $io->success(sprintf(

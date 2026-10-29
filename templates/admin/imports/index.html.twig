@@ -1,0 +1,255 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Admin imports — ScrutinClair{% endblock %}
+
+{% block body %}
+    <h1>Admin — Import et IA</h1>
+
+    {% for label, messages in app.flashes %}
+        {% for msg in messages %}
+            <div class="flash {{ label }}">{{ msg }}</div>
+        {% endfor %}
+    {% endfor %}
+
+    <section class="card">
+        <h2>Lancer une importation / traitement</h2>
+        <form method="post" action="{{ path('admin_imports_start') }}" id="import-form">
+            <div class="form-row">
+                <label class="form-label">Commande</label>
+                <div>
+                    <select name="command" id="command-select" class="form-control">
+                        {% for c in commands %}
+                            <option value="{{ c.name }}">{{ c.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div id="params-container" class="params-grid">
+                <div data-cmd="app:import-senat" class="params-group">
+                    <div class="form-row"><label class="form-label">Année début</label><input name="params[from-year]" type="text" inputmode="numeric" class="form-control" value="2006"/></div>
+                    <div class="form-row"><label class="form-label">Année fin</label><input name="params[to-year]" type="text" inputmode="numeric" class="form-control" value="{{ "now"|date('Y') }}"/></div>
+                    <div class="form-row"><label class="form-label">Limite (nombre de scrutins)</label><input name="params[limit]" type="number" class="form-control"/></div>
+                    <div class="form-row"><label class="form-label checkbox-label"><input name="params[force]" type="checkbox" class="form-checkbox" value="1"/> Forcer la réimportation des votes</label></div>
+                    <div class="form-row"><label class="form-label checkbox-label"><input name="params[skip-personnalites]" type="checkbox" class="form-checkbox" value="1"/> Ne pas importer les personnalités</label></div>
+                    <div class="form-row"><label class="form-label checkbox-label"><input name="params[skip-scrutins]" type="checkbox" class="form-checkbox" value="1"/> Ne pas importer les scrutins</label></div>
+                </div>
+
+                <div data-cmd="app:import-assemblee" class="params-group" style="display:none">
+                    <div class="form-row"><label class="form-label">Année début (optionnel)</label><input name="params[from-year]" type="text" inputmode="numeric" class="form-control"/></div>
+                    <div class="form-row"><label class="form-label">Année fin (optionnel)</label><input name="params[to-year]" type="text" inputmode="numeric" class="form-control"/></div>
+                    <div class="form-row"><label class="form-label">Limite (nombre de scrutins)</label><input name="params[limit]" type="number" class="form-control"/></div>
+                    <div class="form-row"><label class="form-label checkbox-label"><input name="params[force]" type="checkbox" class="form-checkbox" value="1"/> Forcer la réimportation des votes</label></div>
+                </div>
+
+                <div data-cmd="app:import-votes" class="params-group" style="display:none">
+                    <div class="form-row"><label class="form-label">Limite (nombre de scrutins)</label><input name="params[limit]" type="number" class="form-control"/></div>
+                    <div class="form-row"><label class="form-label">UID du scrutin (optionnel)</label><input name="params[uid]" type="text" class="form-control"/></div>
+                    <div class="form-row"><label class="form-label">Dossier des JSON (optionnel)</label><input name="params[dir]" type="text" class="form-control" placeholder="data/scrutins_extraits/json"/></div>
+                    <div class="form-row"><label class="form-label checkbox-label"><input name="params[force]" type="checkbox" class="form-checkbox" value="1"/> Forcer la recréation des votes</label></div>
+                </div>
+
+                <div data-cmd="app:ia:traiter" class="params-group" style="display:none">
+                    <div class="form-row"><label class="form-label">Limite (nombre de textes)</label><input name="params[limit]" type="number" class="form-control"/></div>
+                    <div class="form-row"><label class="form-label">UID du texte (optionnel)</label><input name="params[uid]" type="text" class="form-control"/></div>
+                    <div class="form-row"><label class="form-label">Shard (ex. 0/2)</label><input name="params[shard]" type="text" class="form-control" placeholder="0/1"/></div>
+                    <div class="form-row"><label class="form-label checkbox-label"><input name="params[force]" type="checkbox" class="form-checkbox" value="1"/> Forcer le retraitement</label></div>
+                    <div class="form-row"><label class="form-label checkbox-label"><input name="params[skip-titre]" type="checkbox" class="form-checkbox" value="1"/> Ne pas (re)générer les titres courts</label></div>
+                    <div class="form-row"><label class="form-label checkbox-label"><input name="params[skip-tags]" type="checkbox" class="form-checkbox" value="1"/> Ne pas (re)générer les tags</label></div>
+                    <div class="form-row"><label class="form-label checkbox-label"><input name="params[skip-resume]" type="checkbox" class="form-checkbox" value="1"/> Ne pas (re)générer les résumés</label></div>
+                    <div class="form-row"><label class="form-label">Chambre</label><select name="params[chambre]" class="form-control"><option value="AN">Assemblée nationale</option><option value="SENAT">Sénat</option><option value="all">Toutes</option></select></div>
+                </div>
+
+                <div data-cmd="app:taguer" class="params-group" style="display:none">
+                    <div class="form-row"><label class="form-label">Limite (nombre de textes)</label><input name="params[limit]" type="number" class="form-control"/></div>
+                    <div class="form-row"><label class="form-label">UID du texte (optionnel)</label><input name="params[uid]" type="text" class="form-control"/></div>
+                    <div class="form-row"><label class="form-label">Shard (ex. 0/2)</label><input name="params[shard]" type="text" class="form-control" placeholder="0/1"/></div>
+                    <div class="form-row"><label class="form-label checkbox-label"><input name="params[force]" type="checkbox" class="form-checkbox" value="1"/> Forcer le (re)taggage</label></div>
+                    <div class="form-row"><label class="form-label">Chambre</label><select name="params[chambre]" class="form-control"><option value="AN">Assemblée nationale</option><option value="SENAT">Sénat</option><option value="all">Toutes</option></select></div>
+                </div>
+
+                <div data-cmd="app:vulgariser" class="params-group" style="display:none">
+                    <div class="form-row"><label class="form-label">Limite (nombre de textes)</label><input name="params[limit]" type="number" class="form-control"/></div>
+                    <div class="form-row"><label class="form-label">UID du texte (optionnel)</label><input name="params[uid]" type="text" class="form-control"/></div>
+                    <div class="form-row"><label class="form-label">Type (amendement|dossier)</label><input name="params[type]" type="text" class="form-control" placeholder="amendement|dossier"/></div>
+                    <div class="form-row"><label class="form-label">Shard (ex. 0/2)</label><input name="params[shard]" type="text" class="form-control" placeholder="0/1"/></div>
+                    <div class="form-row"><label class="form-label checkbox-label"><input name="params[force]" type="checkbox" class="form-checkbox" value="1"/> Forcer la vulgarisation</label></div>
+                    <div class="form-row"><label class="form-label checkbox-label"><input name="params[dry-run]" type="checkbox" class="form-checkbox" value="1"/> Dry-run (résolution des sources seulement)</label></div>
+                    <div class="form-row"><label class="form-label">Chambre</label><select name="params[chambre]" class="form-control"><option value="AN">Assemblée nationale</option><option value="SENAT">Sénat</option><option value="all">Toutes</option></select></div>
+                </div>
+
+                <div data-cmd="app:renommer" class="params-group" style="display:none">
+                    <div class="form-row"><label class="form-label">Limite (nombre de textes)</label><input name="params[limit]" type="number" class="form-control"/></div>
+                    <div class="form-row"><label class="form-label">UID du texte (optionnel)</label><input name="params[uid]" type="text" class="form-control"/></div>
+                    <div class="form-row"><label class="form-label">Shard (ex. 0/2)</label><input name="params[shard]" type="text" class="form-control" placeholder="0/1"/></div>
+                    <div class="form-row"><label class="form-label checkbox-label"><input name="params[force]" type="checkbox" class="form-checkbox" value="1"/> Forcer le renommage</label></div>
+                    <div class="form-row"><label class="form-label">Chambre</label><select name="params[chambre]" class="form-control"><option value="AN">Assemblée nationale</option><option value="SENAT">Sénat</option><option value="all">Toutes</option></select></div>
+                </div>
+            </div>
+
+            <p>
+                <button class="btn btn--primary" type="submit">Lancer</button>
+                <button type="button" class="btn btn--ghost btn--sm" onclick="document.getElementById('import-form').reset();">Réinitialiser</button>
+            </p>
+        </form>
+    </section>
+    <section class="card" style="margin-top:1rem">
+        <div class="jobs-header">
+            <h2>Tâches récentes</h2>
+            {% if jobs is not empty %}
+                {# confirmation inside the page: browsers may silently block confirm() dialogs #}
+                <details class="confirm-inline">
+                    <summary class="btn btn--ghost btn--sm">Vider l'historique</summary>
+                    <form method="post" action="{{ path('admin_imports_clear') }}" class="confirm-inline__panel">
+                        <span>Supprimer les tâches terminées, en échec ou annulées et leurs journaux ? Les tâches en cours sont conservées.</span>
+                        <button class="btn btn--danger btn--sm" type="submit">Oui, supprimer</button>
+                    </form>
+                </details>
+            {% endif %}
+        </div>
+
+        <div class="admin-grid">
+            <div class="jobs-card">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Commande</th>
+                            <th>Paramètres</th>
+                            <th>Progression</th>
+                            <th>Journal</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in jobs %}
+                            <tr id="job-{{ job.id }}" class="job-row">
+                                <td style="width:4rem">{{ job.id }}</td>
+                                <td style="width:18rem">{{ commandsMap[job.command] ?? job.command }}</td>
+                                <td class="params-cell">
+                                    {% set params = jobsMeta[job.id].params %}
+                                    {% if params is empty %}
+                                        <span class="param-none" title="Commande lancée sans option">Par défaut</span>
+                                    {% else %}
+                                        <div class="params-list">
+                                            {% for p in params %}
+                                                <span class="param-chip{{ p.flag ? ' param-chip--flag' }}" title="{{ p.hint }}">{{ p.label }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td style="min-width:14rem;">
+                                    {% set active = job.status in ['pending', 'running'] %}
+                                    <div class="job-progress job-progress--{{ job.status }}{{ active and job.progress == 0 ? ' job-progress--indeterminate' }}" id="prog-{{ job.id }}">
+                                        <div class="job-progress__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ job.progress }}">
+                                            <div class="job-progress__bar" style="width: {{ job.progress }}%"></div>
+                                        </div>
+                                        <div class="job-progress__meta">
+                                            <span class="job-progress__status">{{ statusLabels[job.status] ?? job.status }}</span>
+                                            <span class="job-progress__pct">{{ active and job.progress == 0 ? 'en cours…' : job.progress ~ ' %' }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td style="width:22rem">
+                                    <div style="display:flex; flex-direction:column; gap:0.35rem;">
+                                        <div style="display:flex; align-items:center; gap:0.6rem; justify-content:center;">
+                                            {# Show download when a log path exists or we have a preview stored in DB. #}
+                                            {% if job.logPath is defined and job.logPath is not null and job.logPath != '' or job.logPreview is defined and job.logPreview is not null and job.logPreview != '' %}
+                                                <a class="btn btn--sm btn--ghost" href="{{ path('admin_imports_download', {id: job.id}) }}">Télécharger</a>
+                                            {% else %}
+                                                <button class="btn btn--sm btn--ghost" type="button" disabled>Aucun journal</button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="actions-cell">
+                                    {% if job.cancelRequested and job.status in ['pending', 'running'] %}
+                                        <button class="btn btn--ghost btn--sm" type="button" disabled>Annulation demandée</button>
+                                    {% elseif job.status in ['pending', 'running'] %}
+                                        <details class="confirm-inline">
+                                            <summary class="btn btn--danger btn--sm">Annuler</summary>
+                                            <form method="post" action="{{ path('admin_imports_cancel', {id: job.id}) }}" class="confirm-inline__panel">
+                                                <span>Arrêter cette tâche ?</span>
+                                                <button class="btn btn--danger btn--sm" type="submit">Oui, arrêter</button>
+                                            </form>
+                                        </details>
+                                    {% else %}
+                                        <span class="param-none">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="6">Aucune tâche</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // show only the parameters of the selected command; disabled fields are not submitted,
+        // so hidden groups can't override the visible one (they share input names)
+        (function bindParamsToCommand(){
+            var select = document.getElementById('command-select');
+            var form = document.getElementById('import-form');
+            function sync() {
+                document.querySelectorAll('#params-container .params-group').forEach(function(group){
+                    var active = group.getAttribute('data-cmd') === select.value;
+                    group.style.display = active ? '' : 'none';
+                    group.querySelectorAll('input, select, textarea').forEach(function(el){ el.disabled = !active; });
+                });
+            }
+            select.addEventListener('change', sync);
+            form.addEventListener('reset', function(){ setTimeout(sync, 0); });
+            sync();
+        })();
+
+        // open a single SSE stream to receive live progress and status updates for all jobs
+        var STATUS_LABELS = {{ statusLabels|json_encode|raw }};
+        function renderJob(id, info) {
+            var box = document.getElementById('prog-' + id);
+            if (!box) return;
+            var pct = Number(info.progress) || 0;
+            var active = info.status === 'pending' || info.status === 'running';
+            box.className = 'job-progress job-progress--' + info.status + (active && pct === 0 ? ' job-progress--indeterminate' : '');
+            box.querySelector('.job-progress__bar').style.width = pct + '%';
+            box.querySelector('.job-progress__track').setAttribute('aria-valuenow', String(pct));
+            box.querySelector('.job-progress__status').textContent = STATUS_LABELS[info.status] || info.status;
+            box.querySelector('.job-progress__pct').textContent = active && pct === 0 ? 'en cours…' : pct + ' %';
+            if (!active) {
+                var actions = document.querySelector('#job-' + id + ' .actions-cell');
+                if (actions && actions.querySelector('details, button')) {
+                    actions.innerHTML = '<span class="param-none">—</span>';
+                }
+            }
+        }
+
+        (function openProgressStream(){
+            try {
+                var evt = new EventSource('{{ path('admin_imports_stream_all') }}');
+                evt.onmessage = function(e) {
+                    try {
+                        var data = JSON.parse(e.data);
+                        Object.keys(data).forEach(function(id){ renderJob(id, data[id]); });
+                    } catch (err) {
+                        console.error('Error parsing SSE data', err);
+                    }
+                };
+                evt.onerror = function(){
+                    // reconnect after a short delay
+                    try { evt.close(); } catch(e) {}
+                    setTimeout(openProgressStream, 2000);
+                };
+            } catch (err) {
+                console.warn('SSE not available', err);
+            }
+        })();
+
+        // Live log streaming removed: downloads only
+
+
+        // fetchLog / modal removed — download + SSE are used instead
+    </script>
+
+{% endblock %}

@@ -23,10 +23,12 @@ final class SitemapController extends AbstractController
         GouvernementRepository $gouvernementRepository,
         PersonnalitePolitiqueRepository $personnaliteRepository,
         TagRepository $tagRepository,
+        \App\Service\DossierLegislatifIndex $dossierIndex,
     ): Response {
         $base = $request->getSchemeAndHttpHost();
         $urls = [
             $this->url($base, $this->generateUrl('app_home')),
+            $this->url($base, $this->generateUrl('app_dossiers_index')),
             $this->url($base, $this->generateUrl('app_partis')),
             $this->url($base, $this->generateUrl('app_gouvernements')),
             $this->url($base, $this->generateUrl('app_personnalites')),
@@ -47,6 +49,11 @@ final class SitemapController extends AbstractController
         }
         foreach ($tagRepository->findAvecTextes() as $tag) {
             $urls[] = $this->url($base, $this->generateUrl('app_theme_show', ['slug' => $tag->getSlug()]));
+        }
+
+        // Dossiers législatifs (index + individual pages)
+        foreach ($dossierIndex->allDossierRefs() as $ref) {
+            $urls[] = $this->url($base, $this->generateUrl('app_dossier_show', ['dossierRef' => $ref]));
         }
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n"

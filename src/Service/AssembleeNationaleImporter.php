@@ -18,10 +18,11 @@ class AssembleeNationaleImporter
         private string $projectDir,
         private EntityManagerInterface $entityManager,
         private AssembleeUrls $urls,
-        private ResilientDownloader $downloader
+        private ResilientDownloader $downloader,
+        private \Doctrine\DBAL\Connection $connection
     ) {}
 
-    public function importTextes(?SymfonyStyle $io = null): void
+    public function importTextes(?SymfonyStyle $io = null, ?callable $onProgress = null, ?int $fromYear = null, ?int $toYear = null, ?int $limit = null, bool $force = false, ?string $chambre = null): void
     {
         $dataDir = $this->projectDir . '/data';
         $zipPath = $dataDir . '/scrutins.zip';
@@ -69,11 +70,30 @@ class AssembleeNationaleImporter
             $compteurTextes = 0;
             $compteurVotes = 0;
 
+            $processed = 0;
             foreach ($finder as $file) {
                 $jsonContent = $file->getContents();
                 $data = json_decode($jsonContent, true);
 
                 if (!isset($data['scrutin'])) {
+                    continue;
+                }
+
+                // Filter by year range if requested
+                $date = $data['scrutin']['dateScrutin'] ?? null;
+                $year = null;
+                if (is_string($date) && $date !== '') {
+                    try {
+                        $dt = new \DateTimeImmutable($date);
+                        $year = (int) $dt->format('Y');
+                    } catch (\Throwable) {
+                        $year = null;
+                    }
+                }
+                if ($fromYear !== null && $year !== null && $year < $fromYear) {
+                    continue;
+                }
+                if ($toYear !== null && $year !== null && $year > $toYear) {
                     continue;
                 }
 
@@ -90,7 +110,14 @@ class AssembleeNationaleImporter
                     $texteExistant = $texteRepository->findOneBy(['titre' => $titre]);
                 }
                 if ($texteExistant !== null) {
-                    continue;
+                    if ($force) {
+                        // remove existing votes for this texte so we can reimport
+                        if ($texteExistant->getId() !== null) {
+                            $this->connection->executeStatement('DELETE FROM vote WHERE texte_id = ?', [$texteExistant->getId()]);
+                        }
+                    } else {
+                        continue;
+                    }
                 }
 
                 // Création du Texte
@@ -162,6 +189,15 @@ class AssembleeNationaleImporter
                 // 4.5. On fait avancer la barre de 1 étape à chaque fichier traité
                 if ($io) {
                     $io->progressAdvance();
+                }
+                if ($onProgress !== null && $totalFichiers > 0) {
+                    $processed++;
+                    $onProgress((int) floor(($processed / $totalFichiers) * 100));
+                }
+
+                // Respect limit if provided
+                if ($limit !== null && $processed >= $limit) {
+                    break;
                 }
 
                 // 5. Gestion de la mémoire : on vide tous les 20 textes (soit environ 10 000 votes)

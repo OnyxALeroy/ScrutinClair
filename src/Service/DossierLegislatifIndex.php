@@ -135,6 +135,18 @@ final class DossierLegislatifIndex
     }
 
     /**
+     * Retourne la liste des dossierRef indexés.
+     *
+     * @return string[]
+     */
+    public function allDossierRefs(): array
+    {
+        $this->ensureIndex();
+
+        return array_keys($this->documentsByDossier);
+    }
+
+    /**
      * Classe les documents : le texte adopté (BTC) prime sur le texte déposé.
      */
     private function scoreDocument(string $uid): int

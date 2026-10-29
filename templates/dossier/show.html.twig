@@ -19,9 +19,31 @@
         </p>
     </header>
 
+    <form method="get" class="card" style="margin-top:1rem; display:flex; gap:1rem; align-items:center;">
+        <label>
+            Chambre:
+            <select name="chambre">
+                <option value="all" {{ chambreFilter == 'all' ? 'selected' : ''}}>Tous</option>
+                <option value="AN" {{ chambreFilter == 'AN' ? 'selected' : ''}}>Assemblée nationale</option>
+                <option value="SENAT" {{ chambreFilter == 'SENAT' ? 'selected' : ''}}>Sénat</option>
+            </select>
+        </label>
+        <label>
+            Trier par:
+            <select name="sort">
+                <option value="date_desc" {{ sort == 'date_desc' ? 'selected' : ''}}>Date (plus récent)</option>
+                <option value="date_asc" {{ sort == 'date_asc' ? 'selected' : ''}}>Date (plus ancien)</option>
+                <option value="title_asc" {{ sort == 'title_asc' ? 'selected' : ''}}>Titre A→Z</option>
+                <option value="title_desc" {{ sort == 'title_desc' ? 'selected' : ''}}>Titre Z→A</option>
+            </select>
+        </label>
+        <button class="button">Filtrer</button>
+    </form>
+
     <section class="card">
         <h2>Textes et scrutins liés</h2>
 
+        {% if showAn %}
         <h3>Assemblée nationale ({{ totalAn }})</h3>
         {% if textesAn is empty %}
             <p>Aucun texte importé pour l'Assemblée nationale dans ce dossier.</p>
@@ -45,9 +67,13 @@
                 </nav>
             {% endif %}
         {% endif %}
+        {% else %}
+            <p>Affichage de l'Assemblée nationale masqué par le filtre.</p>
+        {% endif %}
 
         <hr/>
 
+        {% if showSenat %}
         <h3>Sénat ({{ totalSenat }})</h3>
         {% if textesSenat is empty %}
             <p>Aucun texte importé pour le Sénat dans ce dossier.</p>
@@ -60,10 +86,14 @@
                         {% if texte.dateScrutin %}<small>— {{ texte.dateScrutin|date('Y-m-d') }}</small>{% endif %}
                         {% if texte.uidScrutin and texte.uidScrutin starts with 'SEN:' %}
                             {# SEN:scrYYYY-N -> JSON url via SenatUrls #}
-                            {% set parts = texte.uidScrutin|replace({'SEN:':'','scr':''}) %}
-                            {% set year = parts|split('-')|first %}
-                            {% set num = parts|split('-')|last %}
-                            <a href="{{ senatUrl ? senatUrl : '#' }}" class="small">(scrutin)</a>
+                            {% set uid = texte.uidScrutin|replace({'SEN:':''}) %}
+                            {% if uid starts with 'scr' %}
+                                {% set uid2 = uid|replace({'scr':''}) %}
+                                {% set parts = uid2|split('-') %}
+                                {% set year = parts[0]|default('0') %}
+                                {% set num = parts[1]|default('0') %}
+                                <a href="{{ senatUrls.scrutinJsonUrl(year, num) }}" class="small" target="_blank" rel="noopener">(JSON du scrutin)</a>
+                            {% endif %}
                         {% endif %}
                     </li>
                 {% endfor %}
@@ -77,6 +107,9 @@
                     {% endfor %}
                 </nav>
             {% endif %}
+        {% endif %}
+        {% else %}
+            <p>Affichage du Sénat masqué par le filtre.</p>
         {% endif %}
     </section>
 

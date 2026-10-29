@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dossiers législatifs — ScrutinClair{% endblock %}
+{% block description %}Index des dossiers législatifs indexés par l'opendata de l'Assemblée nationale.{% endblock %}
+
+{% block body %}
+    <header class="page-head">
+        <span class="hero__eyebrow">Dossiers législatifs</span>
+        <h1>Index des dossiers</h1>
+        <p>Liste alphabétique des dossierRef indexés (source : opendata Assemblée nationale).</p>
+    </header>
+
+    <section class="card">
+        {% if dossierRefs is empty %}
+            <p>Aucun dossier indexé.</p>
+        {% else %}
+            <ul class="list-unstyled">
+                {% for ref in dossierRefs %}
+                    <li><a href="{{ path('app_dossier_show', { dossierRef: ref }) }}">{{ ref }}</a></li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+{% endblock %}

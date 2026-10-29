@@ -1,0 +1,7 @@
+app_dossiers_index:
+    path: /dossiers
+    controller: App\Controller\DossierController::index
+
+app_dossier_show:
+    path: /dossiers/{dossierRef}
+    controller: App\Controller\DossierController::show

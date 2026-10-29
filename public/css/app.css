@@ -376,6 +376,15 @@ svg {
     transform: translateY(1px);
 }
 
+.btn[disabled], .btn[disabled]:hover {
+    opacity: 0.6;
+    cursor: default;
+    box-shadow: none;
+    color: var(--muted);
+    background: var(--surface);
+    border-color: var(--border);
+}
+
 .btn--primary {
     background: var(--primary);
     color: var(--primary-contrast);
@@ -909,6 +918,245 @@ svg {
     padding: 1.75rem 1.7rem;
     margin-bottom: 1.75rem;
     box-shadow: var(--shadow-sm);
+}
+
+/* Admin form controls */
+.form-row {
+    display: flex;
+    gap: 0.7rem;
+    align-items: center;
+    margin-bottom: 0.6rem;
+}
+.form-label {
+    min-width: 10.5rem;
+    color: var(--text-soft);
+    font-weight: 700;
+}
+.form-control {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.6rem;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.95rem;
+}
+.form-control:focus {
+    outline: none;
+    box-shadow: var(--ring);
+    border-color: var(--primary-strong);
+}
+.params-grid {
+    display: grid;
+    gap: 0.6rem;
+}
+.params-group {
+    padding: 0.8rem;
+    border-radius: 0.8rem;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+}
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--text-soft);
+}
+.form-checkbox { transform: translateY(1px); }
+.job-log-pre { max-height: 6rem; overflow:auto; background: transparent; margin: 0; padding: 0.2rem 0.4rem; }
+
+/* parameter badges */
+.param-badge {
+    display:inline-block;
+    padding: 0.24rem 0.5rem;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    font-weight: 700;
+    color: var(--text-soft);
+    font-size: 0.86rem;
+}
+.param-small { padding: 0.18rem 0.4rem; font-size: 0.82rem; }
+.param-muted { background: transparent; border-color: transparent; color: var(--muted); font-weight:600; }
+
+/* Parameters column: limit width and show single-line truncated text */
+.params-cell {
+    max-width: 20rem;
+    text-align: left;
+    /* allow wrapping instead of truncation */
+    white-space: normal;
+    overflow: visible;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.params-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.param-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--text-soft);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.param-chip--flag {
+    background: var(--primary-soft);
+    color: var(--primary-dark);
+    border-color: color-mix(in srgb, var(--primary) 22%, transparent);
+}
+
+.param-none {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.confirm-inline {
+    position: relative;
+}
+
+.confirm-inline > summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.confirm-inline > summary::-webkit-details-marker {
+    display: none;
+}
+
+.confirm-inline__panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.4rem);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.6rem;
+    width: max-content;
+    max-width: min(22rem, calc(100vw - 2rem));
+    padding: 0.8rem;
+    font-size: 0.85rem;
+    text-align: left;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 0.6rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.jobs-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* import jobs: progress bar coloured by status */
+.job-progress__track {
+    position: relative;
+    height: 0.6rem;
+    border-radius: 999px;
+    background: var(--surface-3);
+    overflow: hidden;
+}
+
+.job-progress__bar {
+    height: 100%;
+    border-radius: inherit;
+    background: var(--primary);
+    transition: width 0.4s ease;
+}
+
+.job-progress--success .job-progress__bar { background: #16a34a; }
+.job-progress--failed .job-progress__bar { background: #dc2626; }
+.job-progress--cancelled .job-progress__bar { background: var(--muted); }
+
+/* no percentage reported yet: sliding stripe */
+.job-progress--indeterminate .job-progress__bar {
+    width: 35% !important;
+    animation: job-progress-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes job-progress-slide {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(290%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .job-progress--indeterminate .job-progress__bar { animation: none; width: 100% !important; opacity: 0.35; }
+}
+
+.job-progress__meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 0.35rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.job-progress__status { font-weight: 700; color: var(--text-soft); }
+.job-progress--success .job-progress__status { color: #16a34a; }
+.job-progress--failed .job-progress__status { color: #dc2626; }
+
+/* emphasize progress */
+.stat-bar__track { height: 1rem; }
+.stat-bar__seg { transition: width 0.35s ease; box-shadow: 0 8px 20px -10px rgba(79,70,229,0.28); border-radius: 999px; background: var(--primary); }
+
+/* jobs table adjustments */
+.jobs-card table { width:100%; border-collapse:collapse; }
+.jobs-card td, .jobs-card th { padding: 0.6rem 0.7rem; vertical-align: middle; }
+.jobs-card td, .jobs-card th { text-align: center; }
+.job-row td { border-top: 1px solid var(--border); }
+.job-log-pre { white-space: pre-wrap; word-break: break-word; }
+
+.actions-cell { width: 10rem; }
+.actions-cell .btn { white-space: nowrap; }
+.actions-cell form { margin: 0; }
+.actions-cell a, .actions-cell button { display: inline-block; }
+
+/* Inactive / disabled look for action buttons (more subtle than generic disabled) */
+.actions-cell .btn[disabled], .actions-cell .btn[disabled]:hover {
+    opacity: 1; /* keep readable */
+    cursor: default;
+    box-shadow: none;
+    background: transparent; /* ghost appearance */
+    color: var(--muted);
+    border-color: transparent;
+    text-decoration: none;
+    transform: none;
+}
+
+/* If a danger button inside actions is disabled, make it subdued but still visually distinct */
+.actions-cell .btn--danger[disabled] {
+    background: transparent;
+    color: color-mix(in srgb, var(--contre) 45%, var(--muted));
+    border-color: transparent;
+}
+
+/* danger button for destructive actions */
+.btn--danger {
+    background: var(--contre);
+    color: var(--primary-contrast);
+    border-color: color-mix(in srgb, var(--contre) 12%, transparent);
+}
+.btn--danger:hover {
+    background: color-mix(in srgb, var(--contre) 85%, black 15%);
+}
+
+@media (min-width:900px) {
+    .params-grid { grid-template-columns: repeat(1, 1fr); }
 }
 
 .card__head {

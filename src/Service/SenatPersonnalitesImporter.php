@@ -19,7 +19,7 @@ final class SenatPersonnalitesImporter
     /**
      * @return array{senateurs: int, nouveaux: int, groupes: int}
      */
-    public function importer(): array
+    public function importer(?callable $onProgress = null): array
     {
         $groupes = $this->importerGroupes();
         $repository = $this->entityManager->getRepository(PersonnalitePolitique::class);
@@ -47,7 +47,10 @@ final class SenatPersonnalitesImporter
         }
 
         $nouveaux = 0;
-        foreach ($this->donnees->senateurs() as $index => $senateur) {
+        $senateurs = $this->donnees->senateurs();
+        $total = count($senateurs) ?: 1;
+        $processed = 0;
+        foreach ($senateurs as $index => $senateur) {
             $matricule = trim((string) ($senateur['senmat'] ?? ''));
             if ($matricule === '') {
                 continue;
@@ -110,6 +113,11 @@ final class SenatPersonnalitesImporter
 
             if (($index + 1) % 100 === 0) {
                 $this->entityManager->flush();
+                if ($onProgress !== null) {
+                    $processed = $index + 1;
+                    $pct = (int) floor(($processed / $total) * 100);
+                    $onProgress(min(100, $pct));
+                }
             }
         }
 
