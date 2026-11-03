@@ -15,7 +15,7 @@ final class TexteRepositoryTest extends KernelTestCase
 
     protected function tearDown(): void
     {
-        if ($this->textes !== []) {
+        if ([] !== $this->textes) {
             $em = static::getContainer()->get(EntityManagerInterface::class);
 
             foreach ($this->textes as $texte) {
@@ -34,8 +34,8 @@ final class TexteRepositoryTest extends KernelTestCase
         self::bootKernel();
         $em = static::getContainer()->get(EntityManagerInterface::class);
 
-        $dossierA = 'DLR-TEST-' . bin2hex(random_bytes(4));
-        $dossierB = 'DLR-TEST-' . bin2hex(random_bytes(4));
+        $dossierA = 'DLR-TEST-'.bin2hex(random_bytes(4));
+        $dossierB = 'DLR-TEST-'.bin2hex(random_bytes(4));
 
         $this->createTexte($em, $dossierA, 'Texte principal ancien');
         $this->createTexte($em, $dossierA, "l'amendement n° 12 de test");
@@ -55,8 +55,8 @@ final class TexteRepositoryTest extends KernelTestCase
         self::bootKernel();
         $em = static::getContainer()->get(EntityManagerInterface::class);
 
-        $texteAn = $this->createTexte($em, 'DLR-AN-' . bin2hex(random_bytes(4)), 'Texte AN');
-        $texteSenat = $this->createTexte($em, 'DLR-SEN-' . bin2hex(random_bytes(4)), 'Texte Sénat', Chambre::Senat);
+        $texteAn = $this->createTexte($em, 'DLR-AN-'.bin2hex(random_bytes(4)), 'Texte AN');
+        $texteSenat = $this->createTexte($em, 'DLR-SEN-'.bin2hex(random_bytes(4)), 'Texte Sénat', Chambre::Senat);
 
         $resultats = static::getContainer()->get(TexteRepository::class)
             ->findPourTaguage(false, null, null, null, null, Chambre::Senat);
@@ -69,7 +69,7 @@ final class TexteRepositoryTest extends KernelTestCase
     private function createTexte(EntityManagerInterface $em, string $dossierRef, string $objet, Chambre $chambre = Chambre::AssembleeNationale): Texte
     {
         $texte = new Texte();
-        $texte->setTitre('Titre ' . bin2hex(random_bytes(4)));
+        $texte->setTitre('Titre '.bin2hex(random_bytes(4)));
         $texte->setObjet($objet);
         $texte->setDossierRef($dossierRef);
         $texte->setChambre($chambre);

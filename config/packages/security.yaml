@@ -1,0 +1,37 @@
+security:
+    password_hashers:
+        Symfony\Component\Security\Core\User\InMemoryUser: 'auto'
+    providers:
+        admin_in_memory:
+            memory:
+                users:
+                    admin: { password: '%env(ADMIN_PASSWORD_HASH)%', roles: ['ROLE_ADMIN'] }
+    firewalls:
+        dev:
+            pattern: ^/(_profiler|_wdt|assets|build)/
+            security: false
+        main:
+            lazy: true
+            provider: admin_in_memory
+            form_login:
+                login_path: app_login
+                check_path: app_login
+                enable_csrf: true
+                default_target_path: admin_imports
+            logout:
+                path: app_logout
+                target: app_home
+    access_control:
+        - { path: ^/admin, roles: ROLE_ADMIN }
+
+when@test:
+    security:
+        password_hashers:
+            Symfony\Component\Security\Core\User\InMemoryUser:
+                algorithm: auto
+                cost: 4
+                time_cost: 3
+                memory_cost: 10
+        firewalls:
+            main:
+                security: false

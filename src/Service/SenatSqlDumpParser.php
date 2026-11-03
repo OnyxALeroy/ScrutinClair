@@ -12,7 +12,7 @@ final class SenatSqlDumpParser
     public function parse(string $sql): array
     {
         $flux = fopen('php://temp', 'r+');
-        if ($flux === false) {
+        if (false === $flux) {
             throw new \RuntimeException('Impossible de créer le flux temporaire.');
         }
         fwrite($flux, $sql);
@@ -36,8 +36,8 @@ final class SenatSqlDumpParser
 
         while (($ligne = fgets($flux)) !== false) {
             $ligne = rtrim($ligne, "\r\n");
-            if ($table === null) {
-                if (preg_match('/^COPY (\w+) \((.+)\) FROM stdin;$/', $ligne, $correspondances) === 1) {
+            if (null === $table) {
+                if (1 === preg_match('/^COPY (\w+) \((.+)\) FROM stdin;$/', $ligne, $correspondances)) {
                     $nomTable = $correspondances[1];
                     if (\in_array($nomTable, self::TABLES, true)) {
                         $table = $nomTable;
@@ -48,7 +48,7 @@ final class SenatSqlDumpParser
                 continue;
             }
 
-            if ($ligne === '\.') {
+            if ('\.' === $ligne) {
                 $table = null;
                 $colonnes = [];
 
@@ -59,7 +59,7 @@ final class SenatSqlDumpParser
             $ligneAssociee = [];
             foreach ($colonnes as $index => $colonne) {
                 $valeur = $valeurs[$index] ?? null;
-                $ligneAssociee[$colonne] = $valeur === '\N' ? null : $valeur;
+                $ligneAssociee[$colonne] = '\N' === $valeur ? null : $valeur;
             }
 
             $resultat[$table][] = $ligneAssociee;

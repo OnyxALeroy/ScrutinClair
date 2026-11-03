@@ -21,27 +21,27 @@ final class TexteControllerTest extends WebTestCase
     {
         $em = static::getContainer()->get(EntityManagerInterface::class);
 
-        if ($this->texteId !== null) {
+        if (null !== $this->texteId) {
             $texte = $em->find(Texte::class, $this->texteId);
-            if ($texte !== null) {
+            if (null !== $texte) {
                 $em->remove($texte);
                 $em->flush();
             }
             $this->texteId = null;
         }
 
-        if ($this->tagId !== null) {
+        if (null !== $this->tagId) {
             $tag = $em->find(Tag::class, $this->tagId);
-            if ($tag !== null) {
+            if (null !== $tag) {
                 $em->remove($tag);
                 $em->flush();
             }
             $this->tagId = null;
         }
 
-        if ($this->personnaliteId !== null) {
+        if (null !== $this->personnaliteId) {
             $personnalite = $em->find(PersonnalitePolitique::class, $this->personnaliteId);
-            if ($personnalite !== null) {
+            if (null !== $personnalite) {
                 $em->remove($personnalite);
                 $em->flush();
             }
@@ -60,7 +60,7 @@ final class TexteControllerTest extends WebTestCase
         $texte = $this->createTexte($em, $token);
         $this->texteId = $texte->getId();
 
-        $client->request('GET', '/api/textes?q=' . $token);
+        $client->request('GET', '/api/textes?q='.$token);
 
         self::assertResponseIsSuccessful();
         $data = json_decode((string) $client->getResponse()->getContent(), true);
@@ -77,11 +77,11 @@ final class TexteControllerTest extends WebTestCase
         $texte = $this->createTexte($em, $token);
         $this->texteId = $texte->getId();
 
-        $client->request('GET', '/textes/' . $this->texteId);
+        $client->request('GET', '/textes/'.$this->texteId);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', $token);
-        self::assertSelectorExists('a[href="https://example.test/' . $token . '"]');
+        self::assertSelectorExists('a[href="https://example.test/'.$token.'"]');
     }
 
     public function testHomeSearchFallbackListsResults(): void
@@ -93,10 +93,10 @@ final class TexteControllerTest extends WebTestCase
         $texte = $this->createTexte($em, $token);
         $this->texteId = $texte->getId();
 
-        $client->request('GET', '/?q=' . $token);
+        $client->request('GET', '/?q='.$token);
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists('a[href="/textes/' . $this->texteId . '"]');
+        self::assertSelectorExists('a[href="/textes/'.$this->texteId.'"]');
     }
 
     public function testUnknownTexteReturnsNotFound(): void
@@ -125,14 +125,14 @@ final class TexteControllerTest extends WebTestCase
         $em->flush();
         $this->texteId = $texte->getId();
 
-        $client->request('GET', '/textes/' . $this->texteId);
+        $client->request('GET', '/textes/'.$this->texteId);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h2', 'En clair');
         self::assertSelectorTextContains('.vulgarisation__body h3', 'Première partie');
-        self::assertSelectorTextContains('.vulgarisation__body p', 'Un paragraphe avec du gras ' . $token . '.');
+        self::assertSelectorTextContains('.vulgarisation__body p', 'Un paragraphe avec du gras '.$token.'.');
         self::assertSelectorExists('.vulgarisation__body strong');
-        self::assertSelectorTextContains('.vulgarisation__body li', 'un premier point ' . $token);
+        self::assertSelectorTextContains('.vulgarisation__body li', 'un premier point '.$token);
         self::assertSelectorNotExists('.vulgarisation__body script');
     }
 
@@ -146,7 +146,7 @@ final class TexteControllerTest extends WebTestCase
         $texte = $this->createTexte($em, $token);
         $this->texteId = $texte->getId();
 
-        $client->request('GET', '/textes/' . $this->texteId);
+        $client->request('GET', '/textes/'.$this->texteId);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('.vulgarisation');
@@ -164,7 +164,7 @@ final class TexteControllerTest extends WebTestCase
         $texte = $this->createTexte($em, $token);
         $this->texteId = $texte->getId();
 
-        $client->request('GET', '/textes/' . $this->texteId);
+        $client->request('GET', '/textes/'.$this->texteId);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('.vulgarisation');
@@ -181,15 +181,15 @@ final class TexteControllerTest extends WebTestCase
 
         $token = bin2hex(random_bytes(6));
         $texte = $this->createTexte($em, $token);
-        $texte->setVulgarisation('Un résumé déjà généré ' . $token . '.');
+        $texte->setVulgarisation('Un résumé déjà généré '.$token.'.');
         $texte->setVulgarisationStatut('ok');
         $em->flush();
         $this->texteId = $texte->getId();
 
-        $client->request('GET', '/textes/' . $this->texteId);
+        $client->request('GET', '/textes/'.$this->texteId);
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('.vulgarisation__body', 'Un résumé déjà généré ' . $token . '.');
+        self::assertSelectorTextContains('.vulgarisation__body', 'Un résumé déjà généré '.$token.'.');
         self::assertSelectorTextContains('.ia-note', 'désactivée sur cette instance');
     }
 
@@ -211,7 +211,7 @@ final class TexteControllerTest extends WebTestCase
         $em->flush();
         $this->tagId = $tag->getId();
 
-        $client->request('GET', '/textes/' . $this->texteId);
+        $client->request('GET', '/textes/'.$this->texteId);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('.theme-chip');
@@ -237,7 +237,7 @@ final class TexteControllerTest extends WebTestCase
         $em->flush();
         $this->tagId = $tag->getId();
 
-        $client->request('GET', '/api/textes?q=' . $token);
+        $client->request('GET', '/api/textes?q='.$token);
 
         self::assertResponseIsSuccessful();
         $data = json_decode((string) $client->getResponse()->getContent(), true);
@@ -266,9 +266,9 @@ final class TexteControllerTest extends WebTestCase
         $this->texteId = $texte->getId();
 
         $personnalite = new PersonnalitePolitique();
-        $personnalite->setUid('PA' . $token);
+        $personnalite->setUid('PA'.$token);
         $personnalite->setPrenom('Marie');
-        $personnalite->setNom('Test ' . $token);
+        $personnalite->setNom('Test '.$token);
         $em->persist($personnalite);
         $em->flush();
         $this->personnaliteId = $personnalite->getId();
@@ -280,11 +280,11 @@ final class TexteControllerTest extends WebTestCase
         $em->persist($vote);
         $em->flush();
 
-        $client->request('GET', '/textes/' . $this->texteId);
+        $client->request('GET', '/textes/'.$this->texteId);
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists('a.vote__nom[href="/personnalites/' . $personnalite->getUid() . '"]');
-        self::assertSelectorTextContains('.vote__nom', 'Marie Test ' . $token);
+        self::assertSelectorExists('a.vote__nom[href="/personnalites/'.$personnalite->getUid().'"]');
+        self::assertSelectorTextContains('.vote__nom', 'Marie Test '.$token);
     }
 
     public function testSenateTexteDisplaysChamberAndSenators(): void
@@ -299,7 +299,7 @@ final class TexteControllerTest extends WebTestCase
         $em->flush();
         $this->texteId = $texte->getId();
 
-        $client->request('GET', '/textes/' . $this->texteId);
+        $client->request('GET', '/textes/'.$this->texteId);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.badge--chambre', 'Sénat');
@@ -310,11 +310,11 @@ final class TexteControllerTest extends WebTestCase
     private function createTexte(EntityManagerInterface $em, string $token): Texte
     {
         $texte = new Texte();
-        $texte->setTitre('Titre de test ' . $token);
-        $texte->setObjet('Objet de test ' . $token);
-        $texte->setSynthese('Synthese de test ' . $token);
-        $texte->setUidScrutin('TEST' . $token);
-        $texte->setLien('https://example.test/' . $token);
+        $texte->setTitre('Titre de test '.$token);
+        $texte->setObjet('Objet de test '.$token);
+        $texte->setSynthese('Synthese de test '.$token);
+        $texte->setUidScrutin('TEST'.$token);
+        $texte->setLien('https://example.test/'.$token);
         $em->persist($texte);
         $em->flush();
 

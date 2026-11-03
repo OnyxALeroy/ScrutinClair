@@ -77,10 +77,10 @@ PROMPT;
             mb_substr($contenu, 0, self::TAILLE_SOURCE_MAX),
             $onEtape,
             "Voici le texte d'un projet ou d'une proposition de loi débattu à l'Assemblée nationale.",
-            "Écris entre 200 et 350 mots pour le grand public. "
-                . "Explique ce que la loi prévoit concrètement, pour qui, et pourquoi c'est important. "
-                . "Reformule avec tes propres mots, sans citer les articles. "
-                . "Commence directement par l'explication, sans préambule ni formule du type « Voici… »."
+            'Écris entre 200 et 350 mots pour le grand public. '
+                ."Explique ce que la loi prévoit concrètement, pour qui, et pourquoi c'est important. "
+                .'Reformule avec tes propres mots, sans citer les articles. '
+                ."Commence directement par l'explication, sans préambule ni formule du type « Voici… »."
         );
     }
 
@@ -96,8 +96,8 @@ PROMPT;
 Voici le texte d'un amendement déposé à l'Assemblée nationale (dispositif et éventuel
 exposé des motifs). Ton travail : expliquer au grand public ce que cet amendement change.
 PROMPT,
-            "Rédige 2 à 4 phrases claires expliquant ce que propose concrètement cet amendement. "
-                . "Commence par « Cet amendement propose de… ». Pas de jargon, pas de préambule.",
+            'Rédige 2 à 4 phrases claires expliquant ce que propose concrètement cet amendement. '
+                .'Commence par « Cet amendement propose de… ». Pas de jargon, pas de préambule.',
             300,
         );
     }
@@ -105,13 +105,13 @@ PROMPT,
     private function vulgariser(string $contenu, ?callable $onEtape, string $consigne, string $demande, int $numPredict = 700): string
     {
         $contenu = trim($contenu);
-        if ($contenu === '') {
+        if ('' === $contenu) {
             throw new \InvalidArgumentException('Texte source vide.');
         }
 
         $morceaux = $this->decouper($contenu);
 
-        if (\count($morceaux) === 1 || mb_strlen($contenu) <= self::SEUIL_DIRECT) {
+        if (1 === \count($morceaux) || mb_strlen($contenu) <= self::SEUIL_DIRECT) {
             $this->notifier($onEtape, 1, 1);
 
             return $this->reformuler($consigne, $demande, $contenu, $numPredict);
@@ -137,9 +137,9 @@ PROMPT,
         $this->notifier($onEtape, $total, $total);
 
         return $this->reformuler(
-            $demande . "\n\nVoici les résumés successifs des différentes parties du texte de loi. "
-                . "Fusionne-les en un seul texte fluide et cohérent.\n\n--- RESUMES ---\n"
-                . implode("\n\n", $resumes),
+            $demande."\n\nVoici les résumés successifs des différentes parties du texte de loi. "
+                ."Fusionne-les en un seul texte fluide et cohérent.\n\n--- RESUMES ---\n"
+                .implode("\n\n", $resumes),
             self::SYSTEME,
             implode("\n\n", $resumes),
             700,
@@ -154,7 +154,7 @@ PROMPT,
     {
         $sortie = $this->nettoyerSortie($this->ollama->chat(
             self::SYSTEME,
-            $consigne . "\n\n" . $demande . "\n\n--- TEXTE ---\n" . $source,
+            $consigne."\n\n".$demande."\n\n--- TEXTE ---\n".$source,
             ['num_predict' => $numPredict],
         ));
 
@@ -164,10 +164,10 @@ PROMPT,
 
         return $this->nettoyerSortie($this->ollama->chat(
             self::SYSTEME,
-            $consigne . "\n\n" . $demande
-                . "\n\nATTENTION : ta précédente réponse recopiait le texte source. "
-                . "Explique le texte avec tes propres mots, dans un style simple, "
-                . "sans reprendre les phrases d'origine.\n\n--- TEXTE ---\n" . $source,
+            $consigne."\n\n".$demande
+                ."\n\nATTENTION : ta précédente réponse recopiait le texte source. "
+                .'Explique le texte avec tes propres mots, dans un style simple, '
+                ."sans reprendre les phrases d'origine.\n\n--- TEXTE ---\n".$source,
             ['num_predict' => $numPredict],
         ));
     }
@@ -203,13 +203,13 @@ PROMPT,
 
         $texte = $this->retirerGuillemets(trim($texte));
 
-        return $texte !== '' ? $texte : $original;
+        return '' !== $texte ? $texte : $original;
     }
 
     private function retirerGuillemets(string $texte): string
     {
         $texte = trim($texte);
-        if (preg_match('/^[«"“](.+)[»"”]$/us', $texte, $m) === 1) {
+        if (1 === preg_match('/^[«"“](.+)[»"”]$/us', $texte, $m)) {
             return trim($m[1]);
         }
 
@@ -229,7 +229,7 @@ PROMPT,
         $motsSource = array_flip(array_unique($mots($source)));
         $motsSortie = $mots($sortie);
 
-        if ($motsSortie === [] || $motsSource === []) {
+        if ([] === $motsSortie || [] === $motsSource) {
             return false;
         }
 
@@ -259,7 +259,7 @@ PROMPT,
         foreach ($paragraphes as $paragraphe) {
             // Un paragraphe seul plus gros que la cible est découpé brutalement.
             if (mb_strlen($paragraphe) > self::TAILLE_MORCEAU) {
-                if ($courant !== '') {
+                if ('' !== $courant) {
                     $morceaux[] = trim($courant);
                     $courant = '';
                 }
@@ -271,24 +271,24 @@ PROMPT,
                 continue;
             }
 
-            if (mb_strlen($courant) + mb_strlen($paragraphe) + 2 > self::TAILLE_MORCEAU && $courant !== '') {
+            if (mb_strlen($courant) + mb_strlen($paragraphe) + 2 > self::TAILLE_MORCEAU && '' !== $courant) {
                 $morceaux[] = trim($courant);
                 $courant = '';
             }
 
-            $courant .= ($courant === '' ? '' : "\n\n") . $paragraphe;
+            $courant .= ('' === $courant ? '' : "\n\n").$paragraphe;
         }
 
-        if (trim($courant) !== '') {
+        if ('' !== trim($courant)) {
             $morceaux[] = trim($courant);
         }
 
-        return array_values(array_filter($morceaux, static fn (string $m): bool => $m !== ''));
+        return array_values(array_filter($morceaux, static fn (string $m): bool => '' !== $m));
     }
 
     private function notifier(?callable $onEtape, int $courant, int $total): void
     {
-        if ($onEtape !== null) {
+        if (null !== $onEtape) {
             $onEtape($courant, $total);
         }
     }

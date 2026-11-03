@@ -15,13 +15,13 @@ final class SenatUrls
     ) {
         $domaine = preg_replace('#^https?://#i', '', trim($domaine));
         $domaine = preg_replace('#^www\.#i', '', $domaine);
-        $this->site = 'https://www.' . $domaine;
-        $this->openData = 'https://data.' . $domaine;
+        $this->site = 'https://www.'.$domaine;
+        $this->openData = 'https://data.'.$domaine;
     }
 
     public function senateursZipUrl(): string
     {
-        return $this->openData . '/data/senateurs/export_sens.zip';
+        return $this->openData.'/data/senateurs/export_sens.zip';
     }
 
     public function sessionUrl(int $annee): string

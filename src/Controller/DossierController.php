@@ -3,8 +3,8 @@
 namespace App\Controller;
 
 use App\Repository\TexteRepository;
-use App\Service\DossierLegislatifIndex;
 use App\Service\AssembleeUrls;
+use App\Service\DossierLegislatifIndex;
 use App\Service\SenatUrls;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,7 +35,7 @@ final class DossierController extends AbstractController
         $titre = $this->dossiers->dossierTitle($dossierRef) ?? null;
 
         // Pagination params (separate pages for AN and Sénat)
-        if ($request === null) {
+        if (null === $request) {
             $request = \Symfony\Component\HttpFoundation\Request::createFromGlobals();
         }
         $pageAn = max(1, (int) $request->query->get('page_an', 1));
@@ -44,8 +44,8 @@ final class DossierController extends AbstractController
 
         // UI filters / sorting
         $chambreFilter = $request->query->get('chambre', 'all'); // all | AN | SENAT
-        $showAn = $chambreFilter !== 'SENAT';
-        $showSenat = $chambreFilter !== 'AN';
+        $showAn = 'SENAT' !== $chambreFilter;
+        $showSenat = 'AN' !== $chambreFilter;
         $sort = $request->query->get('sort', 'date_desc');
 
         $qbBase = $this->textes->createQueryBuilder('t')
@@ -56,13 +56,13 @@ final class DossierController extends AbstractController
         $textesAn = [];
         $totalAn = 0;
         if ($showAn) {
-            $qbAn = (clone $qbBase)->andWhere("t.chambre = :an")->setParameter('an', \App\Enum\Chambre::AssembleeNationale->value);
+            $qbAn = (clone $qbBase)->andWhere('t.chambre = :an')->setParameter('an', \App\Enum\Chambre::AssembleeNationale->value);
             // apply sorting
-            if ($sort === 'date_asc') {
+            if ('date_asc' === $sort) {
                 $qbAn->orderBy('t.dateScrutin', 'ASC')->addOrderBy('t.id', 'ASC');
-            } elseif ($sort === 'title_asc') {
+            } elseif ('title_asc' === $sort) {
                 $qbAn->orderBy('t.titre', 'ASC')->addOrderBy('t.id', 'ASC');
-            } elseif ($sort === 'title_desc') {
+            } elseif ('title_desc' === $sort) {
                 $qbAn->orderBy('t.titre', 'DESC')->addOrderBy('t.id', 'DESC');
             } else {
                 $qbAn->orderBy('t.dateScrutin', 'DESC')->addOrderBy('t.id', 'DESC');
@@ -78,12 +78,12 @@ final class DossierController extends AbstractController
         $textesSenat = [];
         $totalSenat = 0;
         if ($showSenat) {
-            $qbSenat = (clone $qbBase)->andWhere("t.chambre = :senat")->setParameter('senat', \App\Enum\Chambre::Senat->value);
-            if ($sort === 'date_asc') {
+            $qbSenat = (clone $qbBase)->andWhere('t.chambre = :senat')->setParameter('senat', \App\Enum\Chambre::Senat->value);
+            if ('date_asc' === $sort) {
                 $qbSenat->orderBy('t.dateScrutin', 'ASC')->addOrderBy('t.id', 'ASC');
-            } elseif ($sort === 'title_asc') {
+            } elseif ('title_asc' === $sort) {
                 $qbSenat->orderBy('t.titre', 'ASC')->addOrderBy('t.id', 'ASC');
-            } elseif ($sort === 'title_desc') {
+            } elseif ('title_desc' === $sort) {
                 $qbSenat->orderBy('t.titre', 'DESC')->addOrderBy('t.id', 'DESC');
             } else {
                 $qbSenat->orderBy('t.dateScrutin', 'DESC')->addOrderBy('t.id', 'DESC');
@@ -98,7 +98,7 @@ final class DossierController extends AbstractController
         $initiatives = $this->dossiers->documentsForDossier($dossierRef);
 
         $assembleeUid = $this->dossiers->texteUidForDossier($dossierRef);
-        $assembleeUrl = $assembleeUid !== null ? $this->assembleeUrls->documentHtmlUrl($assembleeUid) : null;
+        $assembleeUrl = null !== $assembleeUid ? $this->assembleeUrls->documentHtmlUrl($assembleeUid) : null;
         $senatUrl = $this->senatUrls->dossierUrl($dossierRef);
 
         return $this->render('dossier/show.html.twig', [

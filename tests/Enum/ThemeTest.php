@@ -59,7 +59,7 @@ final class ThemeTest extends TestCase
         $catalogue = Theme::cataloguePourModele();
 
         foreach (Theme::cases() as $theme) {
-            self::assertStringContainsString('- ' . $theme->label() . ' :', $catalogue);
+            self::assertStringContainsString('- '.$theme->label().' :', $catalogue);
         }
     }
 }

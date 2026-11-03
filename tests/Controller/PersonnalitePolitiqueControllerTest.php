@@ -17,7 +17,7 @@ final class PersonnalitePolitiqueControllerTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        if ($this->crees !== []) {
+        if ([] !== $this->crees) {
             $em = static::getContainer()->get(EntityManagerInterface::class);
             foreach (array_reverse($this->crees) as $entite) {
                 $em->remove($entite);
@@ -47,7 +47,7 @@ final class PersonnalitePolitiqueControllerTest extends WebTestCase
         $token = bin2hex(random_bytes(5));
         $personnalite = $this->createPersonnalite(static::getContainer()->get(EntityManagerInterface::class), $token);
 
-        $client->request('GET', '/personnalites?q=' . $token);
+        $client->request('GET', '/personnalites?q='.$token);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('body', $personnalite->getNomComplet());
@@ -63,7 +63,7 @@ final class PersonnalitePolitiqueControllerTest extends WebTestCase
         $texte = $this->createTexte($em, $token);
         $this->createVote($em, $texte, $personnalite, 'Contre');
 
-        $client->request('GET', '/personnalites/' . $personnalite->getUid());
+        $client->request('GET', '/personnalites/'.$personnalite->getUid());
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', $personnalite->getNomComplet());
@@ -85,13 +85,13 @@ final class PersonnalitePolitiqueControllerTest extends WebTestCase
         $em->flush();
         $this->createVote($em, $texteTague, $personnalite, 'Pour');
 
-        $texteSansTag = $this->createTexte($em, $token, 'Objet sans thème ' . $token);
+        $texteSansTag = $this->createTexte($em, $token, 'Objet sans thème '.$token);
         $this->createVote($em, $texteSansTag, $personnalite, 'Contre');
 
-        $crawler = $client->request('GET', '/personnalites/' . $personnalite->getUid());
+        $crawler = $client->request('GET', '/personnalites/'.$personnalite->getUid());
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('.theme-votes__resume', 'Thème ' . $token);
+        self::assertSelectorTextContains('.theme-votes__resume', 'Thème '.$token);
         self::assertSelectorTextContains('.theme-votes__ratio', '1 pour');
         self::assertSelectorTextContains('.theme-votes__ratio', '0 contre');
 
@@ -110,7 +110,7 @@ final class PersonnalitePolitiqueControllerTest extends WebTestCase
         $em = static::getContainer()->get(EntityManagerInterface::class);
         $personnalite = $this->createPersonnalite($em, bin2hex(random_bytes(6)));
         $uid = $personnalite->getUid();
-        $path = static::getContainer()->getParameter('kernel.project_dir') . '/var/photos_deputes/' . $uid . '.jpg';
+        $path = static::getContainer()->getParameter('kernel.project_dir').'/var/photos_deputes/'.$uid.'.jpg';
 
         if (!is_dir(\dirname($path))) {
             mkdir(\dirname($path), 0775, true);
@@ -118,7 +118,7 @@ final class PersonnalitePolitiqueControllerTest extends WebTestCase
         file_put_contents($path, str_repeat("\xFF\xD8\xFF\xE0", 200));
 
         try {
-            $client->request('GET', '/personnalites/' . $uid . '/photo');
+            $client->request('GET', '/personnalites/'.$uid.'/photo');
 
             self::assertResponseIsSuccessful();
             self::assertResponseHeaderSame('Content-Type', 'image/jpeg');
@@ -141,7 +141,7 @@ final class PersonnalitePolitiqueControllerTest extends WebTestCase
         $token = bin2hex(random_bytes(5));
         $personnalite = $this->createPersonnalite(static::getContainer()->get(EntityManagerInterface::class), $token);
 
-        $client->request('GET', '/?q=' . $token);
+        $client->request('GET', '/?q='.$token);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('body', $personnalite->getNomComplet());
@@ -150,9 +150,9 @@ final class PersonnalitePolitiqueControllerTest extends WebTestCase
     private function createGroupe(EntityManagerInterface $em): GroupePolitique
     {
         $groupe = new GroupePolitique();
-        $groupe->setUid('PO' . bin2hex(random_bytes(5)));
+        $groupe->setUid('PO'.bin2hex(random_bytes(5)));
         $groupe->setNom('Groupe de test');
-        $groupe->setAcronyme('TG' . bin2hex(random_bytes(2)));
+        $groupe->setAcronyme('TG'.bin2hex(random_bytes(2)));
         $groupe->setCouleur('#4c6ef5');
         $groupe->setOrdre(50);
         $em->persist($groupe);
@@ -166,9 +166,9 @@ final class PersonnalitePolitiqueControllerTest extends WebTestCase
     {
         $groupe = $this->createGroupe($em);
         $personnalite = new PersonnalitePolitique();
-        $personnalite->setUid('PA' . $token);
+        $personnalite->setUid('PA'.$token);
         $personnalite->setPrenom('Test');
-        $personnalite->setNom('Député ' . $token);
+        $personnalite->setNom('Député '.$token);
         $personnalite->setGroupePolitique($groupe);
         $em->persist($personnalite);
         $em->flush();
@@ -180,8 +180,8 @@ final class PersonnalitePolitiqueControllerTest extends WebTestCase
     private function createTag(EntityManagerInterface $em, string $token): Tag
     {
         $tag = new Tag();
-        $tag->setNom('Thème ' . $token);
-        $tag->setSlug('theme-' . strtolower($token));
+        $tag->setNom('Thème '.$token);
+        $tag->setSlug('theme-'.strtolower($token));
         $tag->setCouleur('#4c6ef5');
         $em->persist($tag);
         $em->flush();
@@ -193,9 +193,9 @@ final class PersonnalitePolitiqueControllerTest extends WebTestCase
     private function createTexte(EntityManagerInterface $em, string $token, ?string $objet = null): Texte
     {
         $texte = new Texte();
-        $texte->setTitre('Titre ' . $token);
-        $texte->setObjet($objet ?? 'Objet du scrutin ' . $token);
-        $texte->setUidScrutin('TEST' . $token . bin2hex(random_bytes(3)));
+        $texte->setTitre('Titre '.$token);
+        $texte->setObjet($objet ?? 'Objet du scrutin '.$token);
+        $texte->setUidScrutin('TEST'.$token.bin2hex(random_bytes(3)));
         $em->persist($texte);
         $em->flush();
         $this->crees[] = $texte;

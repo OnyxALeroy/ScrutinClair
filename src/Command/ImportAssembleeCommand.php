@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Command;
 
 use App\Service\AssembleeNationaleImporter;
@@ -52,9 +53,9 @@ class ImportAssembleeCommand extends Command
         // On lance notre service (qui lui, possède le $projectDir et le downloader)
         // If job-id provided (detached), create a progress callback that persists progress
         $onProgress = null;
-        if ($jobId !== null) {
+        if (null !== $jobId) {
             $em = $this->getApplication()->getKernel()->getContainer()->get('doctrine')->getManager();
-            $onProgress = function(int $pct) use ($em, $jobId) {
+            $onProgress = function (int $pct) use ($em, $jobId) {
                 $repo = $em->getRepository(\App\Entity\ImportJob::class);
                 $job = $repo->find((int) $jobId);
                 if ($job) {

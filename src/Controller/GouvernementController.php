@@ -25,7 +25,7 @@ final class GouvernementController extends AbstractController
         MembreGouvernementRepository $membreGouvernementRepository,
     ): Response {
         $gouvernement = $gouvernementRepository->findOneBy(['uid' => $uid]);
-        if ($gouvernement === null) {
+        if (null === $gouvernement) {
             throw $this->createNotFoundException('Ce gouvernement est introuvable.');
         }
 

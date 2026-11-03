@@ -43,9 +43,9 @@ final class SenatScrutinsImporter
 
         // First pass: estimate total number of scrutins to process for progress reporting
         $totalScrutins = 0;
-        for ($annee = $debut; $annee <= $fin; $annee++) {
+        for ($annee = $debut; $annee <= $fin; ++$annee) {
             $session = $this->telecharger($this->urls->sessionUrl($annee), $this->cheminSession($annee), 86400);
-            if ($session === null) {
+            if (null === $session) {
                 continue;
             }
             $numeros = $this->numerosScrutins($session, $annee);
@@ -54,14 +54,14 @@ final class SenatScrutinsImporter
 
         $processed = 0;
 
-        for ($annee = $debut; $annee <= $fin; $annee++) {
+        for ($annee = $debut; $annee <= $fin; ++$annee) {
             $session = $this->telecharger($this->urls->sessionUrl($annee), $this->cheminSession($annee), 86400);
-            if ($session === null) {
+            if (null === $session) {
                 continue;
             }
 
             foreach ($this->numerosScrutins($session, $annee) as $numero) {
-                if ($limite !== null && $compteurs['scrutins'] >= $limite) {
+                if (null !== $limite && $compteurs['scrutins'] >= $limite) {
                     break 2;
                 }
 
@@ -73,7 +73,7 @@ final class SenatScrutinsImporter
                     $this->urls->scrutinJsonUrl($annee, $numero),
                     $this->cheminJson($annee, $numero),
                 );
-                if ($html === null || $json === null) {
+                if (null === $html || null === $json) {
                     continue;
                 }
 
@@ -81,20 +81,20 @@ final class SenatScrutinsImporter
                     $scrutin = $this->parser->parseHtml($html, $this->urls->scrutinHtmlUrl($annee, $numero));
                     $votes = $this->parser->parseVotesJson($json);
                 } catch (\Throwable) {
-                    $compteurs['anomalies']++;
+                    ++$compteurs['anomalies'];
 
                     continue;
                 }
 
-                $compteurs['scrutins']++;
-                $uid = 'SEN:' . $scrutin->uid;
+                ++$compteurs['scrutins'];
+                $uid = 'SEN:'.$scrutin->uid;
                 $texte = $textes->findOneBy(['uidScrutin' => $uid]);
-                if ($texte === null) {
+                if (null === $texte) {
                     $texte = new Texte();
                     $texte->setUidScrutin($uid);
                     $texte->setChambre(Chambre::Senat);
                     $this->entityManager->persist($texte);
-                    $compteurs['nouveaux']++;
+                    ++$compteurs['nouveaux'];
                 }
 
                 $this->mettreAJourTexte($texte, $scrutin);
@@ -116,8 +116,8 @@ final class SenatScrutinsImporter
 
                 usleep(100000);
                 // progress update
-                if ($onProgress !== null && $totalScrutins > 0) {
-                    $processed++;
+                if (null !== $onProgress && $totalScrutins > 0) {
+                    ++$processed;
                     $pct = (int) floor(($processed / $totalScrutins) * 100);
                     $onProgress(min(100, $pct));
                 }
@@ -131,13 +131,13 @@ final class SenatScrutinsImporter
 
     private function mettreAJourTexte(Texte $texte, SenatScrutin $scrutin): void
     {
-        $resultat = $scrutin->resultat !== null ? ucfirst(mb_strtolower($scrutin->resultat, 'UTF-8')) : null;
+        $resultat = null !== $scrutin->resultat ? ucfirst(mb_strtolower($scrutin->resultat, 'UTF-8')) : null;
 
         $texte->setTitre($scrutin->titre);
         $texte->setObjet($scrutin->objet);
         $texte->setDossierRef($scrutin->dossierRef);
         $texte->setLien($scrutin->lien);
-        $texte->setDescription('Résultat du vote : ' . ($resultat ?? 'Résultat inconnu'));
+        $texte->setDescription('Résultat du vote : '.($resultat ?? 'Résultat inconnu'));
         $texte->setDateScrutin($scrutin->dateScrutin);
         $texte->setResultat($resultat);
         $texte->setNonVotants($scrutin->nonVotants);
@@ -145,7 +145,7 @@ final class SenatScrutinsImporter
 
     private function connexionVotesExiste(Texte $texte): bool
     {
-        if ($texte->getId() === null) {
+        if (null === $texte->getId()) {
             return false;
         }
 
@@ -154,9 +154,9 @@ final class SenatScrutinsImporter
 
     /**
      * @param list<array{matricule: string, vote: string, siege: ?int}> $votes
-     * @param array<string, int> $personnes
-     * @param array<string, array{id: int, uid: string}> $groupes
-     * @param array<string, int> $compteurs
+     * @param array<string, int>                                        $personnes
+     * @param array<string, array{id: int, uid: string}>                $groupes
+     * @param array<string, int>                                        $compteurs
      */
     private function insererVotes(
         Texte $texte,
@@ -172,25 +172,25 @@ final class SenatScrutinsImporter
         foreach ($votes as $vote) {
             $code = $vote['vote'];
             if (isset($decompte[$code])) {
-                $decompte[$code]++;
+                ++$decompte[$code];
             }
 
             $statut = $this->parser->statut($code);
-            if ($statut === null) {
+            if (null === $statut) {
                 continue;
             }
 
             $personneId = $personnes[$vote['matricule']] ?? null;
-            if ($personneId === null) {
-                $compteurs['ignores']++;
+            if (null === $personneId) {
+                ++$compteurs['ignores'];
 
                 continue;
             }
 
-            $codeGroupe = $scrutin->dateScrutin !== null
+            $codeGroupe = null !== $scrutin->dateScrutin
                 ? $this->donnees->groupePour($vote['matricule'], $scrutin->dateScrutin)
                 : null;
-            $groupe = $codeGroupe !== null ? ($groupes[$codeGroupe] ?? null) : null;
+            $groupe = null !== $codeGroupe ? ($groupes[$codeGroupe] ?? null) : null;
             $lignes[] = [
                 $statut,
                 $texte->getId(),
@@ -200,7 +200,7 @@ final class SenatScrutinsImporter
             ];
         }
 
-        if ($lignes === []) {
+        if ([] === $lignes) {
             return;
         }
 
@@ -208,15 +208,15 @@ final class SenatScrutinsImporter
             $placeholders = implode(', ', array_fill(0, \count($lot), '(?, ?, ?, ?, ?)'));
             $parametres = array_merge(...$lot);
             $this->connection->executeStatement(
-                'INSERT INTO vote (statut, texte_id, personalite_id, groupe, groupe_politique_id) VALUES ' . $placeholders,
+                'INSERT INTO vote (statut, texte_id, personalite_id, groupe, groupe_politique_id) VALUES '.$placeholders,
                 $parametres,
             );
             $compteurs['votes'] += \count($lot);
         }
 
         foreach (['pour' => 'p', 'contre' => 'c', 'abstentions' => 'a', 'nonVotants' => 'n'] as $propriete => $code) {
-            if ($scrutin->{$propriete} !== null && $scrutin->{$propriete} !== $decompte[$code]) {
-                $compteurs['anomalies']++;
+            if (null !== $scrutin->{$propriete} && $scrutin->{$propriete} !== $decompte[$code]) {
+                ++$compteurs['anomalies'];
             }
         }
     }
@@ -259,11 +259,11 @@ final class SenatScrutinsImporter
      */
     private function numerosScrutins(string $html, int $annee): array
     {
-        if (preg_match_all(
-            '~href="(?:\.\./)?' . $annee . '/(scr' . $annee . '-(\d+))\.html"~',
+        if (false !== preg_match_all(
+            '~href="(?:\.\./)?'.$annee.'/(scr'.$annee.'-(\d+))\.html"~',
             $html,
             $correspondances,
-        ) !== false) {
+        )) {
             $numeros = array_map('intval', $correspondances[2]);
 
             return array_values(array_unique($numeros));
@@ -275,9 +275,9 @@ final class SenatScrutinsImporter
     private function preparerRepertoires(): void
     {
         foreach (['sessions', 'html', 'json'] as $sousRepertoire) {
-            $chemin = $this->projectDir . '/data/senat/' . $sousRepertoire;
+            $chemin = $this->projectDir.'/data/senat/'.$sousRepertoire;
             if (!is_dir($chemin) && !mkdir($chemin, 0775, true) && !is_dir($chemin)) {
-                throw new \RuntimeException('Impossible de créer ' . $chemin);
+                throw new \RuntimeException('Impossible de créer '.$chemin);
             }
         }
     }
@@ -310,30 +310,30 @@ final class SenatScrutinsImporter
     private function telecharger(string $url, string $chemin, ?int $ttl = null): ?string
     {
         if (is_file($chemin) && filesize($chemin) > 0) {
-            if ($ttl === null || filemtime($chemin) >= time() - $ttl) {
+            if (null === $ttl || filemtime($chemin) >= time() - $ttl) {
                 $contenu = file_get_contents($chemin);
-                if ($contenu !== false) {
+                if (false !== $contenu) {
                     return $contenu;
                 }
             }
         }
 
-        for ($tentative = 1; $tentative <= 3; $tentative++) {
+        for ($tentative = 1; $tentative <= 3; ++$tentative) {
             try {
                 $reponse = $this->httpClient->request('GET', $url, [
                     'headers' => ['User-Agent' => self::USER_AGENT],
                     'timeout' => 30,
                 ]);
                 $statut = $reponse->getStatusCode();
-                if ($statut === 404 || $statut === 403) {
+                if (404 === $statut || 403 === $statut) {
                     return null;
                 }
-                if ($statut === 429 || $statut >= 500) {
+                if (429 === $statut || $statut >= 500) {
                     sleep($tentative * 2);
 
                     continue;
                 }
-                if ($statut !== 200) {
+                if (200 !== $statut) {
                     return null;
                 }
 

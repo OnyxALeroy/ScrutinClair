@@ -123,7 +123,7 @@ class Gouvernement
 
     public function estActuel(): bool
     {
-        return $this->dateFin === null;
+        return null === $this->dateFin;
     }
 
     public function getPremierMinistre(): ?MembreGouvernement
@@ -147,6 +147,6 @@ class Gouvernement
             $nom,
         );
 
-        return 'Gouvernement ' . $nom;
+        return 'Gouvernement '.$nom;
     }
 }

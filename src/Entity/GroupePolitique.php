@@ -224,7 +224,7 @@ class GroupePolitique
      */
     public function getPositionPolitique(): int
     {
-        if ($this->chambre === Chambre::Senat) {
+        if (Chambre::Senat === $this->chambre) {
             return self::POSITIONS_POLITIQUES_SENAT[strtoupper((string) $this->acronyme)]
                 ?? self::POSITIONS_POLITIQUES_SENAT[strtoupper((string) $this->uid)]
                 ?? ($this->ordre ?? 999);

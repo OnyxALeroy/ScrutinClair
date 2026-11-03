@@ -3,7 +3,6 @@
 namespace App\Service;
 
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use ZipArchive;
 
 /**
  * Indexe le jeu de données « Dossiers législatifs » de l'Assemblée pour
@@ -59,19 +58,19 @@ final class TextesInitiativesIndex
 
     private function ensureIndex(): void
     {
-        if ($this->propositionsByAuteur !== null) {
+        if (null !== $this->propositionsByAuteur) {
             return;
         }
 
         $this->propositionsByAuteur = [];
         $this->projetsByAuteur = [];
 
-        $dataDir = $this->projectDir . '/data';
+        $dataDir = $this->projectDir.'/data';
         if (!is_dir($dataDir)) {
             mkdir($dataDir, 0777, true);
         }
 
-        $zipPath = $dataDir . '/dossiers.zip';
+        $zipPath = $dataDir.'/dossiers.zip';
         $zip = $this->ouvrirArchive($zipPath);
 
         $legislature = (string) $this->urls->legislature();
@@ -86,7 +85,7 @@ final class TextesInitiativesIndex
             }
 
             $raw = $zip->getFromIndex($i);
-            if ($raw === false) {
+            if (false === $raw) {
                 continue;
             }
 
@@ -107,7 +106,7 @@ final class TextesInitiativesIndex
 
                 $dossierRef = $document['dossierRef'] ?? null;
                 $uid = $document['uid'] ?? null;
-                if (!\is_string($uid) || !\is_string($dossierRef) || $dossierRef === '') {
+                if (!\is_string($uid) || !\is_string($dossierRef) || '' === $dossierRef) {
                     continue;
                 }
 
@@ -124,12 +123,12 @@ final class TextesInitiativesIndex
 
                 if (str_starts_with($name, 'json/document/PIONAN')) {
                     $existant = $meilleurPion[$dossierRef] ?? null;
-                    if ($existant === null || $this->estMeilleur($entree, $existant)) {
+                    if (null === $existant || $this->estMeilleur($entree, $existant)) {
                         $meilleurPion[$dossierRef] = $entree;
                     }
-                } elseif ($this->codeClassification($document) === 'PRJLOI') {
+                } elseif ('PRJLOI' === $this->codeClassification($document)) {
                     $existant = $meilleurProjet[$dossierRef] ?? null;
-                    if ($existant === null || $this->estMeilleur($entree, $existant)) {
+                    if (null === $existant || $this->estMeilleur($entree, $existant)) {
                         $meilleurProjet[$dossierRef] = $entree;
                     }
                 }
@@ -144,12 +143,12 @@ final class TextesInitiativesIndex
                 }
 
                 $dossierRef = $dossier['uid'] ?? null;
-                if (!\is_string($dossierRef) || $dossierRef === '') {
+                if (!\is_string($dossierRef) || '' === $dossierRef) {
                     continue;
                 }
 
                 $initiateurs = $this->extraireInitiateurs($dossier['initiateur'] ?? []);
-                if ($initiateurs !== []) {
+                if ([] !== $initiateurs) {
                     $initiateursParDossier[$dossierRef] = $initiateurs;
                 }
             }
@@ -187,10 +186,10 @@ final class TextesInitiativesIndex
         $this->trier($this->projetsByAuteur);
     }
 
-    private function ouvrirArchive(string $zipPath): ZipArchive
+    private function ouvrirArchive(string $zipPath): \ZipArchive
     {
-        $zip = new ZipArchive();
-        if (is_file($zipPath) && filesize($zipPath) > 0 && $zip->open($zipPath) === true) {
+        $zip = new \ZipArchive();
+        if (is_file($zipPath) && filesize($zipPath) > 0 && true === $zip->open($zipPath)) {
             if ($zip->numFiles > 0) {
                 return $zip;
             }
@@ -203,8 +202,8 @@ final class TextesInitiativesIndex
 
         $this->downloader->download($this->urls->dossiersZipUrl(), $zipPath);
 
-        $zip = new ZipArchive();
-        if ($zip->open($zipPath) !== true) {
+        $zip = new \ZipArchive();
+        if (true !== $zip->open($zipPath)) {
             throw new \RuntimeException('Impossible d\'ouvrir l\'archive des dossiers législatifs.');
         }
 
@@ -264,7 +263,7 @@ final class TextesInitiativesIndex
         $uids = [];
         foreach ($auteur as $entree) {
             $ref = $entree['acteur']['acteurRef'] ?? null;
-            if (\is_string($ref) && $ref !== '') {
+            if (\is_string($ref) && '' !== $ref) {
                 $uids[$ref] = true;
             }
         }
@@ -294,7 +293,7 @@ final class TextesInitiativesIndex
             }
 
             $ref = $entree['acteur']['acteurRef'] ?? null;
-            if (\is_string($ref) && $ref !== '') {
+            if (\is_string($ref) && '' !== $ref) {
                 $uids[$ref] = true;
             }
         }
@@ -320,7 +319,7 @@ final class TextesInitiativesIndex
         $uids = [];
         foreach ($acteurs as $acteur) {
             $ref = $acteur['acteurRef'] ?? null;
-            if (\is_string($ref) && $ref !== '') {
+            if (\is_string($ref) && '' !== $ref) {
                 $uids[$ref] = true;
             }
         }

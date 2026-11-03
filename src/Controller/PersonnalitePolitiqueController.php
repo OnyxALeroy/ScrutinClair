@@ -22,7 +22,7 @@ final class PersonnalitePolitiqueController extends AbstractController
 
         return $this->render('personnalite/index.html.twig', [
             'q' => $q,
-            'personnalites' => $q === ''
+            'personnalites' => '' === $q
                 ? $personnaliteRepository->findAllOrdered()
                 : $personnaliteRepository->search($q, 60),
         ]);
@@ -38,7 +38,7 @@ final class PersonnalitePolitiqueController extends AbstractController
         TextesInitiativesIndex $textesInitiativesIndex,
     ): Response {
         $personnalite = $personnaliteRepository->findOneBy(['uid' => $uid]);
-        if ($personnalite === null) {
+        if (null === $personnalite) {
             throw $this->createNotFoundException('Cette personnalité politique est introuvable.');
         }
 
@@ -79,12 +79,12 @@ final class PersonnalitePolitiqueController extends AbstractController
         PersonnalitePolitiqueRepository $personnaliteRepository,
     ): Response {
         $personnalite = $personnaliteRepository->findOneBy(['uid' => $uid]);
-        if ($personnalite === null) {
+        if (null === $personnalite) {
             throw $this->createNotFoundException('Cette personnalité politique est introuvable.');
         }
 
         $path = $photoCache->ensure($uid, $personnalite->getPhotoUrl());
-        if ($path === null) {
+        if (null === $path) {
             throw $this->createNotFoundException('Photo introuvable pour cette personnalité.');
         }
 

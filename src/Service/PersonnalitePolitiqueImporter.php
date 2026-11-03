@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Service;
 
 use App\Entity\Gouvernement;
@@ -9,7 +10,6 @@ use App\Enum\Chambre;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Finder\Finder;
-use ZipArchive;
 
 class PersonnalitePolitiqueImporter
 {
@@ -18,17 +18,18 @@ class PersonnalitePolitiqueImporter
         private string $projectDir,
         private EntityManagerInterface $entityManager,
         private AssembleeUrls $urls,
-        private ResilientDownloader $downloader
-    ) {}
+        private ResilientDownloader $downloader,
+    ) {
+    }
 
     /**
      * Importe les personnalités politiques depuis l'Assemblée Nationale (Députés).
      */
     public function importDepuisAssembleeNationale(): void
     {
-        $dataDir = $this->projectDir . '/data';
-        $zipPath = $dataDir . '/acteurs_assemblee.zip';
-        $extractPath = $dataDir . '/acteurs_assemblee_extraits';
+        $dataDir = $this->projectDir.'/data';
+        $zipPath = $dataDir.'/acteurs_assemblee.zip';
+        $extractPath = $dataDir.'/acteurs_assemblee_extraits';
         if (!is_dir($dataDir)) {
             mkdir($dataDir, 0777, true);
         }
@@ -37,8 +38,8 @@ class PersonnalitePolitiqueImporter
         if (!$this->dejaExtrait($extractPath)) {
             $this->downloader->download($this->urls->acteursZipUrl(), $zipPath);
 
-            $zip = new ZipArchive();
-            if ($zip->open($zipPath) === true) {
+            $zip = new \ZipArchive();
+            if (true === $zip->open($zipPath)) {
                 $zip->extractTo($extractPath);
                 $zip->close();
             } else {
@@ -59,7 +60,7 @@ class PersonnalitePolitiqueImporter
         foreach ($finderGroupes as $file) {
             $data = json_decode($file->getContents(), true);
             // On ne garde que les Groupes Politiques (GP)
-            if (!isset($data['organe']) || $data['organe']['codeType'] !== 'GP') {
+            if (!isset($data['organe']) || 'GP' !== $data['organe']['codeType']) {
                 continue;
             }
 
@@ -116,7 +117,7 @@ class PersonnalitePolitiqueImporter
             }
 
             $personnalite = $personnaliteRepository->findOneBy(['uid' => $uid]);
-            if ($personnalite === null) {
+            if (null === $personnalite) {
                 $personnalite = new PersonnalitePolitique();
                 $personnalite->setUid($uid);
             }
@@ -126,10 +127,10 @@ class PersonnalitePolitiqueImporter
             $this->enrichir($personnalite, $acteur, $groupesParUid);
 
             $this->entityManager->persist($personnalite);
-            $compteur++;
+            ++$compteur;
 
             // Optimisation de la mémoire (indispensable pour les grosses boucles)
-            if ($compteur % 100 === 0) {
+            if (0 === $compteur % 100) {
                 $this->entityManager->flush();
                 $this->entityManager->clear();
                 $groupesParUid = [];
@@ -140,7 +141,7 @@ class PersonnalitePolitiqueImporter
         }
 
         $this->entityManager->flush();
-        echo "Import des personnalités (Assemblée) terminé. " . $compteur . " personnes traitées.\n";
+        echo 'Import des personnalités (Assemblée) terminé. '.$compteur." personnes traitées.\n";
     }
 
     /**
@@ -149,16 +150,16 @@ class PersonnalitePolitiqueImporter
      */
     public function importGouvernements(): void
     {
-        $dataDir = $this->projectDir . '/data';
+        $dataDir = $this->projectDir.'/data';
         if (!is_dir($dataDir)) {
             mkdir($dataDir, 0777, true);
         }
 
-        $zipPath = $dataDir . '/gouvernements.zip';
+        $zipPath = $dataDir.'/gouvernements.zip';
         $this->assurerArchiveGouvernements($zipPath);
 
-        $zip = new ZipArchive();
-        if ($zip->open($zipPath) !== true) {
+        $zip = new \ZipArchive();
+        if (true !== $zip->open($zipPath)) {
             throw new \RuntimeException('Impossible d\'ouvrir l\'archive des gouvernements.');
         }
 
@@ -172,7 +173,7 @@ class PersonnalitePolitiqueImporter
             }
 
             $raw = $zip->getFromIndex($i);
-            if ($raw === false) {
+            if (false === $raw) {
                 continue;
             }
 
@@ -183,12 +184,12 @@ class PersonnalitePolitiqueImporter
 
             if (isset($data['organe']) && is_array($data['organe'])) {
                 $uid = $data['organe']['uid'] ?? null;
-                if (is_string($uid) && $uid !== '') {
+                if (is_string($uid) && '' !== $uid) {
                     $organes[$uid] = $data['organe'];
                 }
             } elseif (isset($data['acteur']) && is_array($data['acteur'])) {
                 $uid = $this->uidActeur($data['acteur']);
-                if ($uid !== null) {
+                if (null !== $uid) {
                     $acteurs[$uid] = $data['acteur'];
                 }
             }
@@ -208,12 +209,12 @@ class PersonnalitePolitiqueImporter
 
             $uid = $organe['uid'] ?? null;
             $dateDebut = $this->dateOuNull($organe['viMoDe']['dateDebut'] ?? null);
-            if (!is_string($uid) || $uid === '' || $dateDebut === null) {
+            if (!is_string($uid) || '' === $uid || null === $dateDebut) {
                 continue;
             }
 
             $gouvernement = $gouvernementRepository->findOneBy(['uid' => $uid]);
-            if ($gouvernement === null) {
+            if (null === $gouvernement) {
                 $gouvernement = new Gouvernement();
                 $gouvernement->setUid($uid);
             }
@@ -228,7 +229,7 @@ class PersonnalitePolitiqueImporter
 
         $this->entityManager->flush();
 
-        if ($gouvernements === []) {
+        if ([] === $gouvernements) {
             echo "Aucun gouvernement trouvé dans l'archive AMO20.\n";
 
             return;
@@ -270,7 +271,7 @@ class PersonnalitePolitiqueImporter
                 }
 
                 $qualite = (string) ($mandat['infosQualite']['codeQualite'] ?? '');
-                if ($qualite === 'en mission') {
+                if ('en mission' === $qualite) {
                     continue;
                 }
 
@@ -280,7 +281,7 @@ class PersonnalitePolitiqueImporter
                 }
 
                 $gouvernementUid = $parentParMinistere[$ministereUid] ?? null;
-                if ($gouvernementUid === null) {
+                if (null === $gouvernementUid) {
                     continue;
                 }
 
@@ -302,7 +303,7 @@ class PersonnalitePolitiqueImporter
             $membresExistants = [];
             foreach ($gouvernement->getMembres() as $membreExistant) {
                 $uid = $membreExistant->getPersonnalite()?->getUid();
-                if ($uid !== null) {
+                if (null !== $uid) {
                     $membresExistants[$uid] = $membreExistant;
                 }
             }
@@ -311,14 +312,14 @@ class PersonnalitePolitiqueImporter
 
             foreach ($mandatsParGouvernement[$gouvernementUid] ?? [] as $acteurUid => $mandats) {
                 $acteur = $acteurs[$acteurUid] ?? null;
-                if ($acteur === null) {
+                if (null === $acteur) {
                     continue;
                 }
 
                 $meilleurMandat = $this->meilleurMandat($mandats);
 
                 $personnalite = $personnalites[$acteurUid] ?? $personnaliteRepository->findOneBy(['uid' => $acteurUid]);
-                if ($personnalite === null) {
+                if (null === $personnalite) {
                     $personnalite = new PersonnalitePolitique();
                     $personnalite->setUid($acteurUid);
                 }
@@ -328,7 +329,7 @@ class PersonnalitePolitiqueImporter
                 $personnalites[$acteurUid] = $personnalite;
 
                 $membre = $membresExistants[$acteurUid] ?? new MembreGouvernement();
-                if ($membre->getId() === null) {
+                if (null === $membre->getId()) {
                     $gouvernement->addMembre($membre);
                 }
 
@@ -342,7 +343,7 @@ class PersonnalitePolitiqueImporter
 
                 $membre->setPersonnalite($personnalite);
                 $membre->setRole($role);
-                $membre->setMinistere($ministere !== '' ? $ministere : null);
+                $membre->setMinistere('' !== $ministere ? $ministere : null);
                 $membre->setDateDebut($this->dateOuNull($meilleurMandat['mandat']['dateDebut'] ?? null));
                 $membre->setDateFin($this->dateOuNull($meilleurMandat['mandat']['dateFin'] ?? null));
                 $membre->setPreseance(is_numeric($preseance) ? (int) $preseance : null);
@@ -369,15 +370,15 @@ class PersonnalitePolitiqueImporter
             foreach ($mandats as $mandat) {
                 if ($mandat['gouvernement']->estActuel()) {
                     $membreActuel = $mandat['membre'];
-                } elseif ($dernierAncien === null || $mandat['gouvernement']->getDateDebut() > $dernierAncien['gouvernement']->getDateDebut()) {
+                } elseif (null === $dernierAncien || $mandat['gouvernement']->getDateDebut() > $dernierAncien['gouvernement']->getDateDebut()) {
                     $dernierAncien = $mandat;
                 }
             }
 
-            if ($membreActuel !== null) {
+            if (null !== $membreActuel) {
                 $personnalite->setFonction($this->fonctionGouvernementale($membreActuel->getCategorie()));
-            } elseif ($dernierAncien !== null
-                && ($personnalite->getFonction() === null || str_starts_with($personnalite->getFonction(), 'Ancien '))
+            } elseif (null !== $dernierAncien
+                && (null === $personnalite->getFonction() || str_starts_with($personnalite->getFonction(), 'Ancien '))
             ) {
                 $personnalite->setFonction($this->fonctionGouvernementale($dernierAncien['membre']->getCategorie(), true));
             }
@@ -385,14 +386,14 @@ class PersonnalitePolitiqueImporter
 
         $this->entityManager->flush();
 
-        echo 'Import des gouvernements terminé. ' . \count($gouvernements) . ' gouvernements traités.' . "\n";
+        echo 'Import des gouvernements terminé. '.\count($gouvernements).' gouvernements traités.'."\n";
     }
 
     private function assurerArchiveGouvernements(string $zipPath): void
     {
         if (is_file($zipPath) && filesize($zipPath) > 0) {
-            $zip = new ZipArchive();
-            if ($zip->open($zipPath) === true && $zip->numFiles > 0) {
+            $zip = new \ZipArchive();
+            if (true === $zip->open($zipPath) && $zip->numFiles > 0) {
                 $zip->close();
 
                 return;
@@ -413,10 +414,10 @@ class PersonnalitePolitiqueImporter
     {
         $uid = $acteur['uid'] ?? null;
         if (is_string($uid)) {
-            return $uid !== '' ? $uid : null;
+            return '' !== $uid ? $uid : null;
         }
         if (is_array($uid) && is_string($uid['#text'] ?? null)) {
-            return $uid['#text'] !== '' ? $uid['#text'] : null;
+            return '' !== $uid['#text'] ? $uid['#text'] : null;
         }
 
         return null;
@@ -431,21 +432,21 @@ class PersonnalitePolitiqueImporter
         $prenom = $ident['prenom'] ?? null;
         $nom = $ident['nom'] ?? null;
 
-        if (is_string($prenom) && $prenom !== '') {
+        if (is_string($prenom) && '' !== $prenom) {
             $personnalite->setPrenom($prenom);
         }
-        if (is_string($nom) && $nom !== '') {
+        if (is_string($nom) && '' !== $nom) {
             $personnalite->setNom($nom);
         }
 
         $dateNais = $acteur['etatCivil']['infoNaissance']['dateNais'] ?? null;
         $dateNaissance = $this->dateOuNull($dateNais);
-        if ($dateNaissance !== null) {
+        if (null !== $dateNaissance) {
             $personnalite->setDateNaissance($dateNaissance);
         }
 
         $profession = $acteur['profession']['libelleCourant'] ?? null;
-        if (is_string($profession) && $profession !== '') {
+        if (is_string($profession) && '' !== $profession) {
             $personnalite->setProfession($profession);
         }
     }
@@ -476,7 +477,7 @@ class PersonnalitePolitiqueImporter
 
     private function dateOuNull(mixed $valeur): ?\DateTimeImmutable
     {
-        if (!is_string($valeur) || $valeur === '') {
+        if (!is_string($valeur) || '' === $valeur) {
             return null;
         }
 
@@ -524,13 +525,13 @@ class PersonnalitePolitiqueImporter
      * Complète une personnalité depuis son fichier acteur : naissance,
      * profession, circonscription et groupe politique d'appartenance.
      *
-     * @param array<string, mixed> $acteur
+     * @param array<string, mixed>           $acteur
      * @param array<string, GroupePolitique> $groupesParUid
      */
     private function enrichir(PersonnalitePolitique $personnalite, array $acteur, array $groupesParUid): void
     {
         $dateNais = $acteur['etatCivil']['infoNaissance']['dateNais'] ?? null;
-        if (is_string($dateNais) && $dateNais !== '') {
+        if (is_string($dateNais) && '' !== $dateNais) {
             try {
                 $personnalite->setDateNaissance(new \DateTimeImmutable($dateNais));
             } catch (\Exception) {
@@ -539,7 +540,7 @@ class PersonnalitePolitiqueImporter
         }
 
         $profession = $acteur['profession']['libelleCourant'] ?? null;
-        if (is_string($profession) && $profession !== '') {
+        if (is_string($profession) && '' !== $profession) {
             $personnalite->setProfession($profession);
         }
 
@@ -563,22 +564,22 @@ class PersonnalitePolitiqueImporter
 
             $typeOrgane = $mandat['typeOrgane'] ?? null;
 
-            if ($typeOrgane === 'GP') {
+            if ('GP' === $typeOrgane) {
                 $uid = $mandat['organes']['organeRef'] ?? null;
                 $debut = $mandat['dateDebut'] ?? null;
-                if (is_string($uid) && ($groupeDebut === null || (string) $debut > (string) $groupeDebut)) {
+                if (is_string($uid) && (null === $groupeDebut || (string) $debut > (string) $groupeDebut)) {
                     $groupeUid = $uid;
                     $groupeDebut = $debut;
                 }
-            } elseif ($typeOrgane === 'ASSEMBLEE') {
+            } elseif ('ASSEMBLEE' === $typeOrgane) {
                 $circonscription = $this->formaterCirconscription($mandat);
-                if ($personnalite->getCirconscription() === null && $circonscription !== null) {
+                if (null === $personnalite->getCirconscription() && null !== $circonscription) {
                     $personnalite->setCirconscription($circonscription);
                 }
             }
         }
 
-        if ($groupeUid !== null && isset($groupesParUid[$groupeUid])) {
+        if (null !== $groupeUid && isset($groupesParUid[$groupeUid])) {
             $personnalite->setGroupePolitique($groupesParUid[$groupeUid]);
         }
     }
@@ -590,12 +591,12 @@ class PersonnalitePolitiqueImporter
     {
         $departement = $mandat['election']['lieu']['departement'] ?? null;
         $numCirco = $mandat['election']['lieu']['numCirco'] ?? null;
-        if (!is_string($departement) || $departement === '') {
+        if (!is_string($departement) || '' === $departement) {
             return null;
         }
 
-        if ($numCirco !== null && $numCirco !== '') {
-            return $departement . ' (' . $numCirco . 'e circonscription)';
+        if (null !== $numCirco && '' !== $numCirco) {
+            return $departement.' ('.$numCirco.'e circonscription)';
         }
 
         return $departement;

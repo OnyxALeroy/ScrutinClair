@@ -12,6 +12,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class HomeController extends AbstractController
@@ -31,21 +32,21 @@ final class HomeController extends AbstractController
 
         return $this->render('home/index.html.twig', [
             'q' => $q,
-            'textes' => $q === '' ? [] : $texteRepository->search($q, 20),
-            'groupes' => $q === '' ? [] : $groupeRepository->search($q, 10),
-            'personnalites' => $q === '' ? [] : $personnaliteRepository->search($q, 12),
+            'textes' => '' === $q ? [] : $texteRepository->search($q, 20),
+            'groupes' => '' === $q ? [] : $groupeRepository->search($q, 10),
+            'personnalites' => '' === $q ? [] : $personnaliteRepository->search($q, 12),
         ]);
     }
 
     #[Route('/api/recherche', name: 'app_recherche', methods: ['GET'])]
     public function recherche(
-        Request $request,
         TexteRepository $texteRepository,
         GroupePolitiqueRepository $groupeRepository,
         PersonnalitePolitiqueRepository $personnaliteRepository,
+        #[MapQueryString] \App\Dto\RechercheQuery $query = new \App\Dto\RechercheQuery(),
     ): JsonResponse {
-        $q = trim((string) $request->query->get('q', ''));
-        if ($q === '') {
+        $q = trim((string) $query->q);
+        if ('' === $q) {
             return $this->json([]);
         }
 
@@ -82,9 +83,9 @@ final class HomeController extends AbstractController
     }
 
     #[Route('/api/textes', name: 'app_textes_search', methods: ['GET'])]
-    public function searchTextes(Request $request, TexteRepository $texteRepository): JsonResponse
+    public function searchTextes(TexteRepository $texteRepository, #[MapQueryString] \App\Dto\RechercheQuery $query = new \App\Dto\RechercheQuery()): JsonResponse
     {
-        $q = trim((string) $request->query->get('q', ''));
+        $q = trim((string) $query->q);
 
         $textes = array_map(fn (Texte $texte): array => [
             'id' => $texte->getId(),
@@ -112,7 +113,7 @@ final class HomeController extends AbstractController
     private function titreAffiche(Texte $texte): string
     {
         $court = trim((string) $texte->getTitreCourt());
-        if ($court !== '') {
+        if ('' !== $court) {
             return $court;
         }
 

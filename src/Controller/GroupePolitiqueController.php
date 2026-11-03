@@ -29,7 +29,7 @@ final class GroupePolitiqueController extends AbstractController
         VoteRepository $voteRepository,
     ): Response {
         $groupe = $groupeRepository->findOneBy(['uid' => $uid]);
-        if ($groupe === null) {
+        if (null === $groupe) {
             throw $this->createNotFoundException('Ce groupe politique est introuvable.');
         }
 

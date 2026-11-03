@@ -17,26 +17,26 @@ final class DossierControllerTest extends KernelTestCase
         // create a texte with dossierRef
         $token = bin2hex(random_bytes(4));
         $texte = new \App\Entity\Texte();
-        $texte->setTitre('Titre ' . $token);
-        $texte->setObjet('Objet ' . $token);
-        $texte->setDossierRef('DLR-TEST-' . $token);
+        $texte->setTitre('Titre '.$token);
+        $texte->setObjet('Objet '.$token);
+        $texte->setDossierRef('DLR-TEST-'.$token);
         $em->persist($texte);
         $em->flush();
         // prepare a real DossierLegislatifIndex but inject a pre-filled index to avoid network
         $assembleeUrls = new \App\Service\AssembleeUrls('https://www.assemblee-nationale.fr', 17);
         $downloader = new \App\Service\ResilientDownloader(new \Symfony\Component\HttpClient\MockHttpClient());
-        $dossierService = new \App\Service\DossierLegislatifIndex(sys_get_temp_dir(), $assembleeUrls, $downloader);
-        $docs = ['DLR-TEST-' . $token => [['uid' => 'PRJLANR123', 'titre' => 'Doc 1', 'score' => 100, 'lien' => 'https://example.test/doc1']]];
-        $ref = new \ReflectionProperty(\App\Service\DossierLegislatifIndex::class, 'documentsByDossier');
+        $dossierService = new DossierLegislatifIndex(sys_get_temp_dir(), $assembleeUrls, $downloader);
+        $docs = ['DLR-TEST-'.$token => [['uid' => 'PRJLANR123', 'titre' => 'Doc 1', 'score' => 100, 'lien' => 'https://example.test/doc1']]];
+        $ref = new \ReflectionProperty(DossierLegislatifIndex::class, 'documentsByDossier');
         $ref->setAccessible(true);
         $ref->setValue($dossierService, $docs);
 
         $assembleeUrls2 = new \App\Service\AssembleeUrls('https://www.assemblee-nationale.fr', 17);
         $downloader2 = new \App\Service\ResilientDownloader(new \Symfony\Component\HttpClient\MockHttpClient());
-        $initiativesService = new \App\Service\TextesInitiativesIndex(sys_get_temp_dir(), $assembleeUrls2, $downloader2);
-        $ref2 = new \ReflectionProperty(\App\Service\TextesInitiativesIndex::class, 'propositionsByAuteur');
+        $initiativesService = new TextesInitiativesIndex(sys_get_temp_dir(), $assembleeUrls2, $downloader2);
+        $ref2 = new \ReflectionProperty(TextesInitiativesIndex::class, 'propositionsByAuteur');
         $ref2->setAccessible(true);
-        $ref2->setValue($initiativesService, ['DLR-TEST-' . $token => [['uid' => 'PRJLANR123', 'titre' => 'Doc 1', 'lien' => 'https://example.test/doc1']]]);
+        $ref2->setValue($initiativesService, ['DLR-TEST-'.$token => [['uid' => 'PRJLANR123', 'titre' => 'Doc 1', 'lien' => 'https://example.test/doc1']]]);
 
         static::getContainer()->set(DossierLegislatifIndex::class, $dossierService);
         static::getContainer()->set(TextesInitiativesIndex::class, $initiativesService);
@@ -55,10 +55,10 @@ final class DossierControllerTest extends KernelTestCase
 
         $req = new \Symfony\Component\HttpFoundation\Request();
         static::getContainer()->get('request_stack')->push($req);
-        $response = $controller->show('DLR-TEST-' . $token, $req);
+        $response = $controller->show('DLR-TEST-'.$token, $req);
         self::assertInstanceOf(\Symfony\Component\HttpFoundation\Response::class, $response);
         $content = (string) $response->getContent();
-        self::assertStringContainsString('DLR-TEST-' . $token, $content);
+        self::assertStringContainsString('DLR-TEST-'.$token, $content);
         // the page should link to the created texte
         self::assertStringContainsString((string) $texte->getTitre(), $content);
         self::assertStringContainsString('Doc 1', $content);
@@ -69,16 +69,16 @@ final class DossierControllerTest extends KernelTestCase
         self::bootKernel();
         $assembleeUrls = new \App\Service\AssembleeUrls('https://www.assemblee-nationale.fr', 17);
         $downloader = new \App\Service\ResilientDownloader(new \Symfony\Component\HttpClient\MockHttpClient());
-        $dossierIndex = new \App\Service\DossierLegislatifIndex(sys_get_temp_dir(), $assembleeUrls, $downloader);
-        $ref3 = new \ReflectionProperty(\App\Service\DossierLegislatifIndex::class, 'documentsByDossier');
+        $dossierIndex = new DossierLegislatifIndex(sys_get_temp_dir(), $assembleeUrls, $downloader);
+        $ref3 = new \ReflectionProperty(DossierLegislatifIndex::class, 'documentsByDossier');
         $ref3->setAccessible(true);
         $ref3->setValue($dossierIndex, ['DLR-A' => [], 'DLR-B' => []]);
         static::getContainer()->set(DossierLegislatifIndex::class, $dossierIndex);
 
         $assembleeUrls2 = new \App\Service\AssembleeUrls('https://www.assemblee-nationale.fr', 17);
         $downloader2 = new \App\Service\ResilientDownloader(new \Symfony\Component\HttpClient\MockHttpClient());
-        $initiativesService = new \App\Service\TextesInitiativesIndex(sys_get_temp_dir(), $assembleeUrls2, $downloader2);
-        $refI = new \ReflectionProperty(\App\Service\TextesInitiativesIndex::class, 'propositionsByAuteur');
+        $initiativesService = new TextesInitiativesIndex(sys_get_temp_dir(), $assembleeUrls2, $downloader2);
+        $refI = new \ReflectionProperty(TextesInitiativesIndex::class, 'propositionsByAuteur');
         $refI->setAccessible(true);
         $refI->setValue($initiativesService, []);
 

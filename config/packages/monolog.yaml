@@ -1,0 +1,13 @@
+monolog:
+    handlers:
+        main:
+            type: stream
+            path: '%kernel.project_dir%/var/log/%kernel.environment%.log'
+            level: debug
+        console:
+            type: console
+            bubble: false
+        stderr:
+            type: stream
+            path: 'php://stderr'
+            level: error

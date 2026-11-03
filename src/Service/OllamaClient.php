@@ -53,7 +53,7 @@ final class OllamaClient
     }
 
     /**
-     * @param list<array{role: string, content: string}> $messages
+     * @param list<array{role: string, content: string}>                   $messages
      * @param array{num_ctx?: int, temperature?: float, num_predict?: int} $options
      */
     public function messages(array $messages, array $options = [], ?string $format = null): string
@@ -72,7 +72,7 @@ final class OllamaClient
             ], $options),
         ];
 
-        if ($format !== null) {
+        if (null !== $format) {
             $corps['format'] = $format;
         }
 
@@ -82,19 +82,19 @@ final class OllamaClient
             ]);
 
             $status = $response->getStatusCode();
-            if ($status !== 200) {
+            if (200 !== $status) {
                 throw new \RuntimeException(sprintf('Ollama a répondu avec le code HTTP %d.', $status));
             }
 
             $data = $response->toArray(false);
             $contenu = $data['message']['content'] ?? null;
-            if (!\is_string($contenu) || trim($contenu) === '') {
+            if (!\is_string($contenu) || '' === trim($contenu)) {
                 throw new \RuntimeException('Réponse Ollama vide ou inattendue.');
             }
 
             return trim($contenu);
         } catch (HttpExceptionInterface $e) {
-            throw new \RuntimeException('Échec de l\'appel à Ollama : ' . $e->getMessage(), 0, $e);
+            throw new \RuntimeException('Échec de l\'appel à Ollama : '.$e->getMessage(), 0, $e);
         }
     }
 }

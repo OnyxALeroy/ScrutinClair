@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Command;
 
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -22,13 +23,14 @@ final class CleanImportLogsCommand extends Command
         $days = (int) $input->getOption('days');
         $maxFiles = (int) $input->getOption('max-files');
 
-        $dir = __DIR__ . '/../../var/import-logs';
+        $dir = __DIR__.'/../../var/import-logs';
         if (!is_dir($dir)) {
             $output->writeln('<info>No logs directory</info>');
+
             return Command::SUCCESS;
         }
 
-        $files = glob($dir . '/import-*.log');
+        $files = glob($dir.'/import-*.log');
         usort($files, function ($a, $b) {
             return filemtime($b) <=> filemtime($a);
         });
@@ -41,12 +43,12 @@ final class CleanImportLogsCommand extends Command
             $age = $now - filemtime($file);
             if ($age > ($days * 86400)) {
                 @unlink($file);
-                $deleted++;
+                ++$deleted;
             }
         }
 
         // refresh list and apply maxFiles
-        $files = glob($dir . '/import-*.log');
+        $files = glob($dir.'/import-*.log');
         usort($files, function ($a, $b) {
             return filemtime($b) <=> filemtime($a);
         });
@@ -54,7 +56,7 @@ final class CleanImportLogsCommand extends Command
             $toRemove = array_slice($files, $maxFiles);
             foreach ($toRemove as $file) {
                 @unlink($file);
-                $deleted++;
+                ++$deleted;
             }
         }
 

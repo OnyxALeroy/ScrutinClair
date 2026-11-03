@@ -21,11 +21,11 @@ final class ImportVotesCommandTest extends KernelTestCase
 
     protected function tearDown(): void
     {
-        if ($this->crees !== []) {
+        if ([] !== $this->crees) {
             $em = static::getContainer()->get(EntityManagerInterface::class);
             foreach (array_reverse($this->crees) as $entite) {
                 $frais = $em->find($entite::class, $entite->getId());
-                if ($frais !== null) {
+                if (null !== $frais) {
                     $em->remove($frais);
                 }
             }
@@ -33,8 +33,8 @@ final class ImportVotesCommandTest extends KernelTestCase
             $this->crees = [];
         }
 
-        if ($this->dossier !== null && is_dir($this->dossier)) {
-            foreach (glob($this->dossier . '/*') ?: [] as $fichier) {
+        if (null !== $this->dossier && is_dir($this->dossier)) {
+            foreach (glob($this->dossier.'/*') ?: [] as $fichier) {
                 unlink($fichier);
             }
             rmdir($this->dossier);
@@ -50,23 +50,23 @@ final class ImportVotesCommandTest extends KernelTestCase
         $em = static::getContainer()->get(EntityManagerInterface::class);
 
         $token = bin2hex(random_bytes(5));
-        $uidScrutin = 'VTEST' . $token;
+        $uidScrutin = 'VTEST'.$token;
 
         $groupe = (new GroupePolitique())
-            ->setUid('PO' . $token)
-            ->setNom('Groupe de test ' . $token)
-            ->setAcronyme('GT' . substr($token, 0, 3))
+            ->setUid('PO'.$token)
+            ->setNom('Groupe de test '.$token)
+            ->setAcronyme('GT'.substr($token, 0, 3))
             ->setCouleur('#123456')
             ->setOrdre(1);
         $em->persist($groupe);
         $this->crees[] = $groupe;
 
-        $pour = $this->creerPersonnalite($em, $groupe, 'PA' . $token . '1');
-        $contre = $this->creerPersonnalite($em, $groupe, 'PA' . $token . '2');
-        $abstention = $this->creerPersonnalite($em, $groupe, 'PA' . $token . '3');
+        $pour = $this->creerPersonnalite($em, $groupe, 'PA'.$token.'1');
+        $contre = $this->creerPersonnalite($em, $groupe, 'PA'.$token.'2');
+        $abstention = $this->creerPersonnalite($em, $groupe, 'PA'.$token.'3');
 
         $texte = (new Texte())
-            ->setTitre('Scrutin de test ' . $token)
+            ->setTitre('Scrutin de test '.$token)
             ->setUidScrutin($uidScrutin);
         $em->persist($texte);
         $this->crees[] = $texte;
@@ -74,10 +74,10 @@ final class ImportVotesCommandTest extends KernelTestCase
         $em->flush();
         $texteId = $texte->getId();
 
-        $this->dossier = sys_get_temp_dir() . '/scrutinclair-votes-' . $token;
+        $this->dossier = sys_get_temp_dir().'/scrutinclair-votes-'.$token;
         mkdir($this->dossier);
         file_put_contents(
-            $this->dossier . '/' . $uidScrutin . '.json',
+            $this->dossier.'/'.$uidScrutin.'.json',
             json_encode([
                 'scrutin' => [
                     'uid' => $uidScrutin,
@@ -133,8 +133,8 @@ final class ImportVotesCommandTest extends KernelTestCase
     private function creerPersonnalite(EntityManagerInterface $em, GroupePolitique $groupe, string $uid): PersonnalitePolitique
     {
         $personnalite = (new PersonnalitePolitique())
-            ->setPrenom('Prénom ' . $uid)
-            ->setNom('Nom ' . $uid)
+            ->setPrenom('Prénom '.$uid)
+            ->setNom('Nom '.$uid)
             ->setUid($uid)
             ->setGroupePolitique($groupe);
         $em->persist($personnalite);

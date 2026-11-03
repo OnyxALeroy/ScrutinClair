@@ -47,7 +47,7 @@ final class TitreCourtGenerator
     public function generer(string $titreOfficiel, ?string $dossier = null): ?string
     {
         $titreOfficiel = trim($titreOfficiel);
-        if ($titreOfficiel === '') {
+        if ('' === $titreOfficiel) {
             return null;
         }
 
@@ -66,7 +66,7 @@ final class TitreCourtGenerator
     public function genererSansIa(string $titreOfficiel): ?string
     {
         $titreOfficiel = trim($titreOfficiel);
-        if ($titreOfficiel === '') {
+        if ('' === $titreOfficiel) {
             return null;
         }
 
@@ -81,10 +81,10 @@ final class TitreCourtGenerator
     private function referencesEtBudgets(string $titreOfficiel): array
     {
         $reference = $this->references($titreOfficiel);
-        $budget = $reference === ''
+        $budget = '' === $reference
             ? self::LONGUEUR_MAX
             : self::LONGUEUR_MAX - mb_strlen($reference) - 4;
-        $budgetMax = $reference === ''
+        $budgetMax = '' === $reference
             ? self::LONGUEUR_TOLEREE
             : self::LONGUEUR_TOLEREE - mb_strlen($reference) - 4;
 
@@ -97,7 +97,7 @@ final class TitreCourtGenerator
 
     private function composer(?string $sujet, string $reference): ?string
     {
-        if ($sujet === null || trim($sujet) === '') {
+        if (null === $sujet || '' === trim($sujet)) {
             return null;
         }
 
@@ -106,7 +106,7 @@ final class TitreCourtGenerator
             return null;
         }
 
-        return $reference === '' ? $sujet : $sujet . ' (' . $reference . ')';
+        return '' === $reference ? $sujet : $sujet.' ('.$reference.')';
     }
 
     /**
@@ -117,16 +117,16 @@ final class TitreCourtGenerator
     {
         $parties = [];
 
-        if (preg_match("/(?:^|\\W)(?:l['\x{2019}\x{0060}]?)?articles?\\s+(premier|1er|\\d+(?:\\s+(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies))?)/iu", $titre, $m) === 1) {
+        if (1 === preg_match("/(?:^|\\W)(?:l['\x{2019}\x{0060}]?)?articles?\\s+(premier|1er|\\d+(?:\\s+(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies))?)/iu", $titre, $m)) {
             $valeur = mb_strtolower($m[1]);
             if (\in_array($valeur, ['premier', '1er'], true)) {
                 $valeur = '1';
             }
-            $parties[] = 'article ' . $valeur;
+            $parties[] = 'article '.$valeur;
         }
 
-        if (preg_match('/n[°o]\s*(\d+)/u', $titre, $m) === 1) {
-            $parties[] = 'amendement ' . $m[1];
+        if (1 === preg_match('/n[°o]\s*(\d+)/u', $titre, $m)) {
+            $parties[] = 'amendement '.$m[1];
         }
 
         return implode(', ', $parties);
@@ -135,25 +135,25 @@ final class TitreCourtGenerator
     private function demanderSujet(string $titreOfficiel, ?string $dossier, int $budget, int $budgetMax): ?string
     {
         $consigne = "Voici le titre officiel d'un texte de loi ou d'un amendement de l'Assemblée nationale :\n"
-            . '« ' . $titreOfficiel . ' »';
-        if ($dossier !== null && trim($dossier) !== '') {
-            $consigne .= "\nDossier législatif auquel il appartient : " . trim($dossier);
+            .'« '.$titreOfficiel.' »';
+        if (null !== $dossier && '' !== trim($dossier)) {
+            $consigne .= "\nDossier législatif auquel il appartient : ".trim($dossier);
         }
 
         $consigne .= "\n\nRédige un titre court qui résume le sujet de ce texte : "
-            . 'entre 3 et 8 mots, vise ' . $budget . ' caractères (maximum ' . $budgetMax . '), '
-            . 'sans guillemets ni point final. '
-            . 'Le titre doit être une phrase complète et autonome : ne le termine jamais par un '
-            . 'mot de liaison (de, du, des, la, le, les, à, au, aux, dont, que, qui, pour, entre…). '
-            . "Ne mentionne ni le nom d'un auteur, ni le numéro d'un amendement ou d'un article, "
-            . 'ni la phase de lecture : le code ajoute ces références après coup. '
-            . "Le sujet doit se lire comme le titre d'un article de presse. "
-            . 'Réponds uniquement par le titre.';
+            .'entre 3 et 8 mots, vise '.$budget.' caractères (maximum '.$budgetMax.'), '
+            .'sans guillemets ni point final. '
+            .'Le titre doit être une phrase complète et autonome : ne le termine jamais par un '
+            .'mot de liaison (de, du, des, la, le, les, à, au, aux, dont, que, qui, pour, entre…). '
+            ."Ne mentionne ni le nom d'un auteur, ni le numéro d'un amendement ou d'un article, "
+            .'ni la phase de lecture : le code ajoute ces références après coup. '
+            ."Le sujet doit se lire comme le titre d'un article de presse. "
+            .'Réponds uniquement par le titre.';
 
         for ($essai = 0; $essai < 2; ++$essai) {
             try {
                 $reponse = $this->ollama->chat(self::SYSTEME, $consigne, [
-                    'temperature' => $essai === 0 ? 0.2 : 0,
+                    'temperature' => 0 === $essai ? 0.2 : 0,
                     'num_predict' => 90,
                 ]);
             } catch (\Throwable) {
@@ -161,14 +161,14 @@ final class TitreCourtGenerator
             }
 
             $sujet = $this->nettoyer($reponse, $budgetMax);
-            if ($sujet !== null) {
+            if (null !== $sujet) {
                 return $sujet;
             }
 
             $consigne .= "\nTa réponse précédente était inexploitable : elle dépassait "
-                . $budgetMax . ' caractères, se terminait par un mot de liaison ou contenait une référence. '
-                . 'Raccourcis-la en une phrase complète de 3 à 8 mots, sans mot de liaison final. '
-                . 'Réponds par le seul sujet, sans rien d\'autre.';
+                .$budgetMax.' caractères, se terminait par un mot de liaison ou contenait une référence. '
+                .'Raccourcis-la en une phrase complète de 3 à 8 mots, sans mot de liaison final. '
+                .'Réponds par le seul sujet, sans rien d\'autre.';
         }
 
         return null;
@@ -191,7 +191,7 @@ final class TitreCourtGenerator
 
         $minuscules = mb_strtolower($sujet);
         foreach (self::BRUIT as $mot) {
-            if (preg_match('/\\b' . preg_quote($mot, '/') . '/iu', $minuscules) === 1) {
+            if (1 === preg_match('/\\b'.preg_quote($mot, '/').'/iu', $minuscules)) {
                 return null;
             }
         }
@@ -206,11 +206,11 @@ final class TitreCourtGenerator
     private function sujetComplet(string $sujet): bool
     {
         $sujet = trim($sujet);
-        if ($sujet === '') {
+        if ('' === $sujet) {
             return false;
         }
 
-        if (preg_match('/[.,;:…\-–—]$/u', $sujet) === 1) {
+        if (1 === preg_match('/[.,;:…\-–—]$/u', $sujet)) {
             return false;
         }
 
@@ -252,7 +252,7 @@ final class TitreCourtGenerator
         $longueur = 0;
         foreach ($marqueurs as $marqueur) {
             $trouve = mb_strripos($reste, $marqueur);
-            if ($trouve !== false && $trouve > $position) {
+            if (false !== $trouve && $trouve > $position) {
                 $position = $trouve;
                 $longueur = mb_strlen($marqueur);
             }
@@ -265,7 +265,7 @@ final class TitreCourtGenerator
         $sujet = trim(mb_substr($reste, $position + $longueur));
         $sujet = (string) preg_replace('/^(?:la |le |l\x27|les |un |une |des |du |de |d\x27)/iu', '', $sujet);
 
-        return trim($sujet) === '' ? null : $sujet;
+        return '' === trim($sujet) ? null : $sujet;
     }
 
     /**
@@ -276,7 +276,6 @@ final class TitreCourtGenerator
     {
         $initiale = mb_substr($sujet, 0, 1);
 
-        return mb_strtoupper($initiale) . mb_substr($sujet, 1);
+        return mb_strtoupper($initiale).mb_substr($sujet, 1);
     }
-
 }

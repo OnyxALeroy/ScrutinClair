@@ -5,7 +5,6 @@ namespace App\Service;
 use App\Entity\Texte;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
-use ZipArchive;
 
 /**
  * Résout, pour un scrutin portant sur un amendement, le contenu de cet
@@ -36,19 +35,19 @@ final class AmendementResolver
     public function resolve(Texte $texte): ?array
     {
         $numero = $this->numeroScrutin($texte->getUidScrutin());
-        if ($numero === null) {
+        if (null === $numero) {
             return null;
         }
 
         $lien = $this->extraireLienAmendement($this->urls->scrutinUrl($numero));
-        if ($lien === null) {
+        if (null === $lien) {
             return null;
         }
 
         $uid = $this->extraireUidAmendement(
             $this->urls->amendementPageUrl($lien['texte'], $lien['chambre'], $lien['numero'])
         );
-        if ($uid === null) {
+        if (null === $uid) {
             return null;
         }
 
@@ -65,8 +64,8 @@ final class AmendementResolver
             return null;
         }
 
-        $zip = new ZipArchive();
-        if ($zip->open($this->zipPath()) !== true) {
+        $zip = new \ZipArchive();
+        if (true !== $zip->open($this->zipPath())) {
             return null;
         }
 
@@ -75,7 +74,7 @@ final class AmendementResolver
         $raw = $zip->getFromIndex($entryIndex);
         $zip->close();
 
-        if ($raw === false) {
+        if (false === $raw) {
             return null;
         }
 
@@ -104,14 +103,14 @@ final class AmendementResolver
      */
     private function index(): array
     {
-        if ($this->indexParUid !== null) {
+        if (null !== $this->indexParUid) {
             return $this->indexParUid;
         }
 
         $this->indexParUid = [];
 
-        $zip = new ZipArchive();
-        if ($zip->open($this->zipPath()) !== true) {
+        $zip = new \ZipArchive();
+        if (true !== $zip->open($this->zipPath())) {
             return $this->indexParUid;
         }
 
@@ -138,11 +137,11 @@ final class AmendementResolver
     private function extraireLienAmendement(string $url): ?array
     {
         $html = $this->fetch($url);
-        if ($html === null) {
+        if (null === $html) {
             return null;
         }
 
-        if (preg_match('#/amendements/([^/"\s]+)/(AN|SN)/(\d+)#', $html, $m) !== 1) {
+        if (1 !== preg_match('#/amendements/([^/"\s]+)/(AN|SN)/(\d+)#', $html, $m)) {
             return null;
         }
 
@@ -152,11 +151,11 @@ final class AmendementResolver
     private function extraireUidAmendement(string $url): ?string
     {
         $html = $this->fetch($url);
-        if ($html === null) {
+        if (null === $html) {
             return null;
         }
 
-        return preg_match('/\b(AMANR[0-9A-Z]+)\b/', $html, $m) === 1 ? $m[1] : null;
+        return 1 === preg_match('/\b(AMANR[0-9A-Z]+)\b/', $html, $m) ? $m[1] : null;
     }
 
     private function fetch(string $url): ?string
@@ -171,7 +170,7 @@ final class AmendementResolver
                 'http_version' => '1.1',
             ]);
 
-            if ($response->getStatusCode() !== 200) {
+            if (200 !== $response->getStatusCode()) {
                 return null;
             }
 
@@ -183,11 +182,11 @@ final class AmendementResolver
 
     private function numeroScrutin(?string $uid): ?string
     {
-        if ($uid === null) {
+        if (null === $uid) {
             return null;
         }
 
-        return preg_match('/V(\d+)$/i', $uid, $m) === 1 ? $m[1] : null;
+        return 1 === preg_match('/V(\d+)$/i', $uid, $m) ? $m[1] : null;
     }
 
     private function dossierRefFromEntry(string $entryName): ?string
@@ -200,13 +199,13 @@ final class AmendementResolver
 
     private function zipPath(): string
     {
-        $dataDir = $this->projectDir . '/data';
+        $dataDir = $this->projectDir.'/data';
         if (!is_dir($dataDir)) {
             mkdir($dataDir, 0777, true);
         }
 
-        $zipPath = $dataDir . '/amendements.zip';
-        if (!is_file($zipPath) || filesize($zipPath) === 0) {
+        $zipPath = $dataDir.'/amendements.zip';
+        if (!is_file($zipPath) || 0 === filesize($zipPath)) {
             $this->downloader->download($this->urls->amendementsZipUrl(), $zipPath);
         }
 

@@ -41,11 +41,11 @@ final class DeputePhotoCache
 
         foreach (array_unique($urls) as $url) {
             $contenu = $this->telecharger($url);
-            if ($contenu === null) {
+            if (null === $contenu) {
                 continue;
             }
 
-            $tmp = $path . '.' . bin2hex(random_bytes(6)) . '.tmp';
+            $tmp = $path.'.'.bin2hex(random_bytes(6)).'.tmp';
             if (false === file_put_contents($tmp, $contenu)) {
                 return null;
             }
@@ -90,6 +90,6 @@ final class DeputePhotoCache
     {
         $safe = (string) preg_replace('/[^A-Za-z0-9]/', '', $uid);
 
-        return $this->projectDir . '/var/photos_deputes/' . $safe . '.jpg';
+        return $this->projectDir.'/var/photos_deputes/'.$safe.'.jpg';
     }
 }

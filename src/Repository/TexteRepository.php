@@ -24,13 +24,13 @@ class TexteRepository extends ServiceEntityRepository
     public function search(string $q, int $limit = 10): array
     {
         $q = trim($q);
-        if ($q === '') {
+        if ('' === $q) {
             return [];
         }
 
         return $this->createQueryBuilder('t')
             ->andWhere('LOWER(t.titre) LIKE LOWER(:q) OR LOWER(t.objet) LIKE LOWER(:q) OR LOWER(t.titreCourt) LIKE LOWER(:q) OR LOWER(t.synthese) LIKE LOWER(:q)')
-            ->setParameter('q', '%' . $q . '%')
+            ->setParameter('q', '%'.$q.'%')
             ->orderBy('t.id', 'ASC')
             ->setMaxResults($limit)
             ->getQuery()
@@ -52,29 +52,29 @@ class TexteRepository extends ServiceEntityRepository
             $qb->andWhere('t.vulgarisation IS NULL');
         }
 
-        if ($uid !== null && $uid !== '') {
+        if (null !== $uid && '' !== $uid) {
             $qb->andWhere('t.uidScrutin = :uid')->setParameter('uid', $uid);
         }
 
-        if ($type === 'amendement') {
+        if ('amendement' === $type) {
             $qb->andWhere("LOWER(t.objet) LIKE '%amendement%'");
-        } elseif ($type === 'dossier') {
+        } elseif ('dossier' === $type) {
             $qb->andWhere("LOWER(t.objet) NOT LIKE '%amendement%'");
         }
 
         // Répartition stable entre processus parallèles : chaque texte tombe
         // dans un seul morceau (répartition modulo l'identifiant).
-        if ($shard !== null && $nbShards !== null && $nbShards > 0) {
+        if (null !== $shard && null !== $nbShards && $nbShards > 0) {
             $qb->andWhere('MOD(t.id, :nbShards) = :shard')
                 ->setParameter('nbShards', $nbShards)
                 ->setParameter('shard', $shard);
         }
 
-        if ($chambre !== null) {
+        if (null !== $chambre) {
             $qb->andWhere('t.chambre = :chambre')->setParameter('chambre', $chambre->value);
         }
 
-        if ($limit !== null && $limit > 0) {
+        if (null !== $limit && $limit > 0) {
             $qb->setMaxResults($limit);
         }
 
@@ -94,21 +94,21 @@ class TexteRepository extends ServiceEntityRepository
             $qb->leftJoin('t.themes', 'tag')->andWhere('tag.id IS NULL');
         }
 
-        if ($uid !== null && $uid !== '') {
+        if (null !== $uid && '' !== $uid) {
             $qb->andWhere('t.uidScrutin = :uid')->setParameter('uid', $uid);
         }
 
-        if ($shard !== null && $nbShards !== null && $nbShards > 0) {
+        if (null !== $shard && null !== $nbShards && $nbShards > 0) {
             $qb->andWhere('MOD(t.id, :nbShards) = :shard')
                 ->setParameter('nbShards', $nbShards)
                 ->setParameter('shard', $shard);
         }
 
-        if ($chambre !== null) {
+        if (null !== $chambre) {
             $qb->andWhere('t.chambre = :chambre')->setParameter('chambre', $chambre->value);
         }
 
-        if ($limit !== null && $limit > 0) {
+        if (null !== $limit && $limit > 0) {
             $qb->setMaxResults($limit);
         }
 
@@ -128,21 +128,21 @@ class TexteRepository extends ServiceEntityRepository
             $qb->andWhere('t.titreCourt IS NULL');
         }
 
-        if ($uid !== null && $uid !== '') {
+        if (null !== $uid && '' !== $uid) {
             $qb->andWhere('t.uidScrutin = :uid')->setParameter('uid', $uid);
         }
 
-        if ($shard !== null && $nbShards !== null && $nbShards > 0) {
+        if (null !== $shard && null !== $nbShards && $nbShards > 0) {
             $qb->andWhere('MOD(t.id, :nbShards) = :shard')
                 ->setParameter('nbShards', $nbShards)
                 ->setParameter('shard', $shard);
         }
 
-        if ($chambre !== null) {
+        if (null !== $chambre) {
             $qb->andWhere('t.chambre = :chambre')->setParameter('chambre', $chambre->value);
         }
 
-        if ($limit !== null && $limit > 0) {
+        if (null !== $limit && $limit > 0) {
             $qb->setMaxResults($limit);
         }
 
@@ -170,10 +170,10 @@ class TexteRepository extends ServiceEntityRepository
     {
         $dossierRefs = array_values(array_unique(array_filter(
             $dossierRefs,
-            static fn (mixed $dossierRef): bool => \is_string($dossierRef) && $dossierRef !== '',
+            static fn (mixed $dossierRef): bool => \is_string($dossierRef) && '' !== $dossierRef,
         )));
 
-        if ($dossierRefs === []) {
+        if ([] === $dossierRefs) {
             return [];
         }
 
@@ -187,7 +187,7 @@ class TexteRepository extends ServiceEntityRepository
         $selection = [];
         foreach ($textes as $texte) {
             $dossierRef = $texte->getDossierRef();
-            if (!\is_string($dossierRef) || $dossierRef === '') {
+            if (!\is_string($dossierRef) || '' === $dossierRef) {
                 continue;
             }
 
@@ -285,11 +285,11 @@ class TexteRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('t')->orderBy('t.id', 'ASC');
 
-        if ($uid !== null && $uid !== '') {
+        if (null !== $uid && '' !== $uid) {
             $qb->andWhere('t.uidScrutin = :uid')->setParameter('uid', $uid);
         }
 
-        if ($shard !== null && $nbShards !== null && $nbShards > 0) {
+        if (null !== $shard && null !== $nbShards && $nbShards > 0) {
             $qb->andWhere('MOD(t.id, :nbShards) = :shard')
                 ->setParameter('nbShards', $nbShards)
                 ->setParameter('shard', $shard);
@@ -308,21 +308,21 @@ class TexteRepository extends ServiceEntityRepository
                 $conditions[] = 't.vulgarisation IS NULL';
             }
 
-            if ($conditions === []) {
+            if ([] === $conditions) {
                 return [];
             }
 
-            $qb->andWhere('(' . implode(' OR ', $conditions) . ')');
+            $qb->andWhere('('.implode(' OR ', $conditions).')');
             if ($faireTags) {
                 $qb->groupBy('t.id');
             }
         }
 
-        if ($chambre !== null) {
+        if (null !== $chambre) {
             $qb->andWhere('t.chambre = :chambre')->setParameter('chambre', $chambre->value);
         }
 
-        if ($limit !== null && $limit > 0) {
+        if (null !== $limit && $limit > 0) {
             $qb->setMaxResults($limit);
         }
 

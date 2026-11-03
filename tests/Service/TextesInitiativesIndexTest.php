@@ -6,7 +6,6 @@ use App\Service\AssembleeUrls;
 use App\Service\ResilientDownloader;
 use App\Service\TextesInitiativesIndex;
 use PHPUnit\Framework\TestCase;
-use ZipArchive;
 
 final class TextesInitiativesIndexTest extends TestCase
 {
@@ -14,8 +13,8 @@ final class TextesInitiativesIndexTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->projectDir = sys_get_temp_dir() . '/scrutinclair-index-' . bin2hex(random_bytes(6));
-        mkdir($this->projectDir . '/data', 0777, true);
+        $this->projectDir = sys_get_temp_dir().'/scrutinclair-index-'.bin2hex(random_bytes(6));
+        mkdir($this->projectDir.'/data', 0777, true);
     }
 
     protected function tearDown(): void
@@ -25,7 +24,7 @@ final class TextesInitiativesIndexTest extends TestCase
 
     public function testIndexesProposalsByAuthorAndProjectsByInitiator(): void
     {
-        $this->createArchive($this->projectDir . '/data/dossiers.zip');
+        $this->createArchive($this->projectDir.'/data/dossiers.zip');
 
         $downloader = $this->createMock(ResilientDownloader::class);
         $downloader->expects(self::never())->method('download');
@@ -71,7 +70,7 @@ final class TextesInitiativesIndexTest extends TestCase
 
     public function testDownloadsArchiveWhenLocalFileIsMissing(): void
     {
-        $archive = $this->projectDir . '/fixture.zip';
+        $archive = $this->projectDir.'/fixture.zip';
         $this->createArchive($archive);
 
         $downloader = $this->createMock(ResilientDownloader::class);
@@ -93,8 +92,8 @@ final class TextesInitiativesIndexTest extends TestCase
 
     private function createArchive(string $path): void
     {
-        $zip = new ZipArchive();
-        self::assertTrue($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE));
+        $zip = new \ZipArchive();
+        self::assertTrue($zip->open($path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE));
 
         $zip->addFromString('json/document/PIONANR5L17B0001.json', json_encode([
             'document' => [

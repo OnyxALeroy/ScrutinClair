@@ -12,7 +12,6 @@ use App\Service\VulgarisationGenerator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -57,7 +56,7 @@ final class VulgariserCommand extends Command
 
         $force = (bool) $input->getOption('force');
         $dryRun = (bool) $input->getOption('dry-run');
-        $limit = $input->getOption('limit') !== null ? (int) $input->getOption('limit') : null;
+        $limit = null !== $input->getOption('limit') ? (int) $input->getOption('limit') : null;
         $uid = $input->getOption('uid');
         $type = $input->getOption('type');
         try {
@@ -67,7 +66,6 @@ final class VulgariserCommand extends Command
 
             return Command::FAILURE;
         }
-
 
         if (!$dryRun && !$this->ai->isEnabled()) {
             $io->error('La génération IA est désactivée sur cette instance (AI_ENABLED=0) : aucun rapport ne peut être généré.');
@@ -86,10 +84,10 @@ final class VulgariserCommand extends Command
             'Déjà vulgarisés : <info>%d</info> | à traiter dans ce run : <info>%d</info>%s',
             $this->textes->compterVulgarises(),
             $total,
-            $limit !== null ? sprintf(' (limite %d)', $limit) : '',
+            null !== $limit ? sprintf(' (limite %d)', $limit) : '',
         ));
 
-        if ($total === 0) {
+        if (0 === $total) {
             $io->success('Rien à faire.');
 
             return Command::SUCCESS;
@@ -97,7 +95,7 @@ final class VulgariserCommand extends Command
 
         $useBar = !$output->isVerbose() && !$dryRun;
         $bar = $useBar ? $io->createProgressBar($total) : null;
-        if ($bar !== null) {
+        if (null !== $bar) {
             $bar->setFormat(' %current%/%max% [%bar%] %percent:3s%% %elapsed:6s% — %message%');
             $bar->setMessage('démarrage…');
             $bar->start();
@@ -110,41 +108,41 @@ final class VulgariserCommand extends Command
 
         foreach ($textes as $texte) {
             ++$index;
-            $identifiant = $texte->getUidScrutin() ?? ('#' . $texte->getId());
+            $identifiant = $texte->getUidScrutin() ?? ('#'.$texte->getId());
             $t0 = microtime(true);
 
             $onEtape = function (string $phase, int $courant, int $totalMorceaux) use ($bar, $identifiant): void {
-                if ($bar !== null) {
+                if (null !== $bar) {
                     $bar->setMessage(sprintf('%s — %s %d/%d', $identifiant, $phase, $courant, $totalMorceaux));
                     $bar->display();
                 }
             };
 
-            if ($bar !== null) {
-                $bar->setMessage($identifiant . ' — résolution…');
+            if (null !== $bar) {
+                $bar->setMessage($identifiant.' — résolution…');
                 $bar->display();
             }
 
             try {
                 if ($dryRun) {
                     $source = $this->generator->resoudre($texte);
-                    $statut = $source === null ? 'no_source' : ('source:' . $source['type']);
-                    ++$stats[$source === null ? 'no_source' : 'ok'];
+                    $statut = null === $source ? 'no_source' : ('source:'.$source['type']);
+                    ++$stats[null === $source ? 'no_source' : 'ok'];
                 } else {
                     $resultat = $this->generator->generer($texte, $onEtape);
-                    if ($resultat === null) {
+                    if (null === $resultat) {
                         $texte->setVulgarisationStatut('no_source');
-                        $stats['no_source']++;
+                        ++$stats['no_source'];
                         $statut = 'no_source';
                     } else {
                         $texte->setVulgarisation($resultat['contenu']);
                         $texte->setVulgarisationSource($resultat['source']);
                         $texte->setVulgarisationStatut('ok');
                         $texte->setVulgarisationAt(new \DateTimeImmutable());
-                        $stats['ok']++;
+                        ++$stats['ok'];
 
                         if ($this->attacherThemes($texte, $resultat['themes']) > 0) {
-                            $stats['tagnes']++;
+                            ++$stats['tagnes'];
                         }
 
                         $statut = 'ok';
@@ -152,7 +150,7 @@ final class VulgariserCommand extends Command
                     $this->entityManager->flush();
                 }
             } catch (\Throwable $e) {
-                $stats['error']++;
+                ++$stats['error'];
                 $statut = 'error';
                 $erreurs[] = sprintf('%s : %s', $identifiant, $e->getMessage());
                 if (!$dryRun) {
@@ -163,7 +161,7 @@ final class VulgariserCommand extends Command
 
             $duree = microtime(true) - $t0;
 
-            if ($bar !== null) {
+            if (null !== $bar) {
                 $bar->setMessage(sprintf('%s — %s (%.1fs)', $identifiant, $statut, $duree));
                 $bar->advance();
             } else {
@@ -178,7 +176,7 @@ final class VulgariserCommand extends Command
             }
         }
 
-        if ($bar !== null) {
+        if (null !== $bar) {
             $bar->finish();
             $io->newLine(2);
         }
@@ -186,10 +184,10 @@ final class VulgariserCommand extends Command
         $dureeTotale = microtime(true) - $debut;
         $this->afficherBilan($io, $stats, $dureeTotale, $total);
 
-        if ($erreurs !== []) {
+        if ([] !== $erreurs) {
             $io->section('Échecs');
             foreach ($erreurs as $erreur) {
-                $io->writeln(' - ' . $erreur);
+                $io->writeln(' - '.$erreur);
             }
 
             return Command::FAILURE;
@@ -205,7 +203,7 @@ final class VulgariserCommand extends Command
      */
     private function decouperShards(?string $valeur): array
     {
-        if ($valeur === null || $valeur === '') {
+        if (null === $valeur || '' === $valeur) {
             return [null, null];
         }
 
@@ -230,7 +228,7 @@ final class VulgariserCommand extends Command
      */
     private function attacherThemes(Texte $texte, array $themes): int
     {
-        if ($themes === []) {
+        if ([] === $themes) {
             return 0;
         }
 

@@ -28,12 +28,12 @@ final class SenatPersonnalitesImporter
         $parCle = [];
         $clesAmbigues = [];
         foreach ($repository->findAll() as $personnalite) {
-            if ($personnalite->getUidSenat() !== null) {
+            if (null !== $personnalite->getUidSenat()) {
                 $parUidSenat[$personnalite->getUidSenat()] = $personnalite;
             }
 
             $cle = $this->matcher->clePersonnalite($personnalite);
-            if ($cle === '||') {
+            if ('||' === $cle) {
                 continue;
             }
             if (isset($parCle[$cle])) {
@@ -52,68 +52,68 @@ final class SenatPersonnalitesImporter
         $processed = 0;
         foreach ($senateurs as $index => $senateur) {
             $matricule = trim((string) ($senateur['senmat'] ?? ''));
-            if ($matricule === '') {
+            if ('' === $matricule) {
                 continue;
             }
 
             $cle = $this->matcher->cleSenateur($senateur);
             $personnalite = $parUidSenat[$matricule] ?? $parCle[$cle] ?? null;
 
-            if ($personnalite === null) {
+            if (null === $personnalite) {
                 $personnalite = new PersonnalitePolitique();
-                $personnalite->setUid('SEN' . strtoupper($matricule));
+                $personnalite->setUid('SEN'.strtoupper($matricule));
                 $this->entityManager->persist($personnalite);
-                $nouveaux++;
-            } elseif ($personnalite->getUidSenat() !== null && $personnalite->getUidSenat() !== $matricule) {
+                ++$nouveaux;
+            } elseif (null !== $personnalite->getUidSenat() && $personnalite->getUidSenat() !== $matricule) {
                 continue;
             }
 
             $personnalite->setUidSenat($matricule);
-            if ($personnalite->getNom() === null || $personnalite->getNom() === '') {
+            if (null === $personnalite->getNom() || '' === $personnalite->getNom()) {
                 $personnalite->setNom((string) ($senateur['sennomuse'] ?? $matricule));
             }
-            if ($personnalite->getPrenom() === null || $personnalite->getPrenom() === '') {
+            if (null === $personnalite->getPrenom() || '' === $personnalite->getPrenom()) {
                 $personnalite->setPrenom((string) ($senateur['senprenomuse'] ?? ''));
             }
-            if ($personnalite->getDateNaissance() === null) {
+            if (null === $personnalite->getDateNaissance()) {
                 $personnalite->setDateNaissance(SenatDataProvider::date($senateur['sendatnai'] ?? null));
             }
-            if ($personnalite->getProfession() === null && ($senateur['sendespro'] ?? null) !== null) {
+            if (null === $personnalite->getProfession() && ($senateur['sendespro'] ?? null) !== null) {
                 $personnalite->setProfession($senateur['sendespro']);
             }
-            if ($personnalite->getCirconscriptionSenat() === null && ($senateur['sencircou'] ?? null) !== null) {
+            if (null === $personnalite->getCirconscriptionSenat() && ($senateur['sencircou'] ?? null) !== null) {
                 $personnalite->setCirconscriptionSenat($senateur['sencircou']);
             }
 
             $codeGroupe = $senateur['sengrppolcodcou'] ?? null;
-            $groupe = $codeGroupe !== null ? ($groupes[$codeGroupe] ?? null) : null;
-            if ($groupe === null) {
+            $groupe = null !== $codeGroupe ? ($groupes[$codeGroupe] ?? null) : null;
+            if (null === $groupe) {
                 $codeGroupe = $this->donnees->dernierGroupe($matricule);
-                $groupe = $codeGroupe !== null ? ($groupes[$codeGroupe] ?? null) : null;
+                $groupe = null !== $codeGroupe ? ($groupes[$codeGroupe] ?? null) : null;
             }
-            if ($groupe !== null) {
+            if (null !== $groupe) {
                 $personnalite->setGroupePolitiqueSenat($groupe);
             }
 
-            if ($personnalite->getPhotoUrl() === null) {
+            if (null === $personnalite->getPhotoUrl()) {
                 $photoUrl = $this->donnees->photoUrl($senateur);
-                if ($photoUrl !== null) {
+                if (null !== $photoUrl) {
                     $personnalite->setPhotoUrl($photoUrl);
                     $personnalite->setPhotoCredit('Sénat');
                 }
             }
-            if ($personnalite->getFonction() === null) {
+            if (null === $personnalite->getFonction()) {
                 $personnalite->setFonction(($senateur['etasencod'] ?? null) === 'ACTIF' ? 'Sénateur' : 'Ancien sénateur');
             }
 
             $parUidSenat[$matricule] = $personnalite;
-            if ($cle !== '||') {
+            if ('||' !== $cle) {
                 $parCle[$cle] = $personnalite;
             }
 
             if (($index + 1) % 100 === 0) {
                 $this->entityManager->flush();
-                if ($onProgress !== null) {
+                if (null !== $onProgress) {
                     $processed = $index + 1;
                     $pct = (int) floor(($processed / $total) * 100);
                     $onProgress(min(100, $pct));
@@ -139,9 +139,9 @@ final class SenatPersonnalitesImporter
         $resultat = [];
 
         foreach ($this->donnees->groupes() as $code => $donnees) {
-            $uid = 'SEN' . strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', $code));
+            $uid = 'SEN'.strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', $code));
             $groupe = $repository->findOneBy(['uid' => $uid]);
-            if ($groupe === null) {
+            if (null === $groupe) {
                 $groupe = new GroupePolitique();
                 $groupe->setUid($uid);
                 $this->entityManager->persist($groupe);

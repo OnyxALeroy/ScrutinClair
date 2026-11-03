@@ -18,7 +18,7 @@ final class GouvernementControllerTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        if ($this->gouvernements !== [] || $this->personnalites !== []) {
+        if ([] !== $this->gouvernements || [] !== $this->personnalites) {
             $em = static::getContainer()->get(EntityManagerInterface::class);
 
             foreach ($this->gouvernements as $gouvernement) {
@@ -70,14 +70,14 @@ final class GouvernementControllerTest extends WebTestCase
         $this->createMembre($em, $gouvernement, $premierMinistre, 'Premier ministre', 'Premier ministre', 1);
         $this->createMembre($em, $gouvernement, $ministre, 'Ministre', 'Intérieur', 30);
 
-        $client->request('GET', '/gouvernements/' . $gouvernement->getUid());
+        $client->request('GET', '/gouvernements/'.$gouvernement->getUid());
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', $gouvernement->getNomAffiche());
         self::assertSelectorTextContains('body', $premierMinistre->getNomComplet());
         self::assertSelectorTextContains('body', $ministre->getNomComplet());
         self::assertSelectorTextContains('body', 'Intérieur');
-        self::assertSelectorExists('a[href="/personnalites/' . $ministre->getUid() . '"]');
+        self::assertSelectorExists('a[href="/personnalites/'.$ministre->getUid().'"]');
     }
 
     public function testUnknownGovernmentReturnsNotFound(): void
@@ -96,10 +96,10 @@ final class GouvernementControllerTest extends WebTestCase
         ?string $dateFin,
     ): Gouvernement {
         $gouvernement = new Gouvernement();
-        $gouvernement->setUid('PO' . bin2hex(random_bytes(6)));
+        $gouvernement->setUid('PO'.bin2hex(random_bytes(6)));
         $gouvernement->setNom($nom);
         $gouvernement->setDateDebut(new \DateTimeImmutable($dateDebut));
-        $gouvernement->setDateFin($dateFin !== null ? new \DateTimeImmutable($dateFin) : null);
+        $gouvernement->setDateFin(null !== $dateFin ? new \DateTimeImmutable($dateFin) : null);
         $em->persist($gouvernement);
         $em->flush();
 
@@ -111,9 +111,9 @@ final class GouvernementControllerTest extends WebTestCase
     private function createPersonnalite(EntityManagerInterface $em, string $prenom, string $nom): PersonnalitePolitique
     {
         $personnalite = new PersonnalitePolitique();
-        $personnalite->setUid('PA' . bin2hex(random_bytes(6)));
+        $personnalite->setUid('PA'.bin2hex(random_bytes(6)));
         $personnalite->setPrenom($prenom);
-        $personnalite->setNom($nom . ' ' . bin2hex(random_bytes(3)));
+        $personnalite->setNom($nom.' '.bin2hex(random_bytes(3)));
         $em->persist($personnalite);
         $em->flush();
 

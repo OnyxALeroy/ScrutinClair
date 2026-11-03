@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Connexion — ScrutinClair{% endblock %}
+
+{% block body %}
+    <h1>Connexion admin</h1>
+
+    {% if error %}
+        <div class="flash error">Identifiants incorrects</div>
+    {% endif %}
+
+    <form action="{{ path('app_login') }}" method="post">
+        <div class="form-row">
+            <label class="form-label">Identifiant</label>
+            <input type="text" name="_username" value="{{ last_username }}" class="form-control" required />
+        </div>
+        <div class="form-row">
+            <label class="form-label">Mot de passe</label>
+            <input type="password" name="_password" class="form-control" required />
+        </div>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+        <p>
+            <button class="btn btn--primary" type="submit">Se connecter</button>
+        </p>
+    </form>
+
+{% endblock %}

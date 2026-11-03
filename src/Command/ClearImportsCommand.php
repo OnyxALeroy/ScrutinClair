@@ -1,12 +1,13 @@
 <?php
+
 namespace App\Command;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 #[AsCommand(name: 'app:clear-imports', description: 'Clear import_job rows and remove import logs (for container restarts)')]
 final class ClearImportsCommand extends Command
@@ -18,10 +19,10 @@ final class ClearImportsCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $dir = $this->projectDir . '/var/import-logs';
+        $dir = $this->projectDir.'/var/import-logs';
         if (is_dir($dir)) {
-            $files = glob($dir . '/import-*.log');
-            if ($files !== false) {
+            $files = glob($dir.'/import-*.log');
+            if (false !== $files) {
                 foreach ($files as $f) {
                     @unlink($f);
                 }
@@ -39,7 +40,7 @@ final class ClearImportsCommand extends Command
         } catch (\Throwable $e) {
             // ignore errors to avoid breaking the command
             // still print a message for visibility
-            $output->writeln('<comment>Warning: failed to clear import_job rows: ' . $e->getMessage() . '</comment>');
+            $output->writeln('<comment>Warning: failed to clear import_job rows: '.$e->getMessage().'</comment>');
         }
 
         $output->writeln('<info>Import jobs and logs cleared</info>');

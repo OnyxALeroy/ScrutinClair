@@ -16,7 +16,7 @@ final class GroupePolitiqueControllerTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        if ($this->crees !== []) {
+        if ([] !== $this->crees) {
             $em = static::getContainer()->get(EntityManagerInterface::class);
             foreach (array_reverse($this->crees) as $entite) {
                 $em->remove($entite);
@@ -50,7 +50,7 @@ final class GroupePolitiqueControllerTest extends WebTestCase
         $texte = $this->createTexte($em, $token);
         $this->createVote($em, $texte, $personnalite, $groupe, 'Pour');
 
-        $client->request('GET', '/partis/' . $groupe->getUid());
+        $client->request('GET', '/partis/'.$groupe->getUid());
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', (string) $groupe->getNom());
@@ -70,9 +70,9 @@ final class GroupePolitiqueControllerTest extends WebTestCase
     {
         $token ??= bin2hex(random_bytes(5));
         $groupe = new GroupePolitique();
-        $groupe->setUid('PO' . $token);
-        $groupe->setNom('Groupe de test ' . $token);
-        $groupe->setAcronyme('TST' . substr($token, 0, 3));
+        $groupe->setUid('PO'.$token);
+        $groupe->setNom('Groupe de test '.$token);
+        $groupe->setAcronyme('TST'.substr($token, 0, 3));
         $groupe->setCouleur('#4c6ef5');
         $groupe->setOrdre(50);
         $em->persist($groupe);
@@ -85,9 +85,9 @@ final class GroupePolitiqueControllerTest extends WebTestCase
     private function createPersonnalite(EntityManagerInterface $em, GroupePolitique $groupe, string $token): PersonnalitePolitique
     {
         $personnalite = new PersonnalitePolitique();
-        $personnalite->setUid('PA' . $token);
+        $personnalite->setUid('PA'.$token);
         $personnalite->setPrenom('Test');
-        $personnalite->setNom('Député ' . $token);
+        $personnalite->setNom('Député '.$token);
         $personnalite->setGroupePolitique($groupe);
         $em->persist($personnalite);
         $em->flush();
@@ -99,9 +99,9 @@ final class GroupePolitiqueControllerTest extends WebTestCase
     private function createTexte(EntityManagerInterface $em, string $token): Texte
     {
         $texte = new Texte();
-        $texte->setTitre('Titre ' . $token);
-        $texte->setObjet('Objet du scrutin ' . $token);
-        $texte->setUidScrutin('TEST' . $token);
+        $texte->setTitre('Titre '.$token);
+        $texte->setObjet('Objet du scrutin '.$token);
+        $texte->setUidScrutin('TEST'.$token);
         $em->persist($texte);
         $em->flush();
         $this->crees[] = $texte;

@@ -28,31 +28,31 @@ final class SenatScrutinParser
     {
         $document = new \DOMDocument();
         $previous = libxml_use_internal_errors(true);
-        $document->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NOWARNING | LIBXML_NOERROR);
+        $document->loadHTML('<?xml encoding="UTF-8">'.$html, LIBXML_NOWARNING | LIBXML_NOERROR);
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
 
         $xpath = new \DOMXPath($document);
 
         $titre = $this->texte($xpath, '//h1[contains(concat(" ", normalize-space(@class), " "), " page-title ")]');
-        if ($titre === '') {
+        if ('' === $titre) {
             $titre = 'Scrutin';
         }
 
         $objet = $this->texte($xpath, '//p[contains(concat(" ", normalize-space(@class), " "), " page-lead ")]');
-        if ($objet === '') {
+        if ('' === $objet) {
             $objet = $titre;
         }
 
         $resultat = $this->texte($xpath, '//span[contains(concat(" ", normalize-space(@class), " "), " badge ")]');
-        $resultat = $resultat !== '' ? $resultat : null;
+        $resultat = '' !== $resultat ? $resultat : null;
 
         $dossierRef = null;
         $lienDossier = $xpath->query('//a[contains(@href, "/dossier-legislatif/")]')->item(0);
         if ($lienDossier instanceof \DOMElement) {
             $chemin = (string) parse_url($lienDossier->getAttribute('href'), PHP_URL_PATH);
             $dossierRef = basename($chemin, '.html');
-            if ($dossierRef === '' || $dossierRef === '.') {
+            if ('' === $dossierRef || '.' === $dossierRef) {
                 $dossierRef = null;
             }
         }
@@ -103,7 +103,7 @@ final class SenatScrutinParser
 
             $matricule = $vote['matricule'] ?? null;
             $position = $vote['vote'] ?? null;
-            if (!\is_string($matricule) || $matricule === '' || !\is_string($position)) {
+            if (!\is_string($matricule) || '' === $matricule || !\is_string($position)) {
                 continue;
             }
 
@@ -145,7 +145,7 @@ final class SenatScrutinParser
 
     private function nombre(string $texte, string $expression): ?int
     {
-        if (preg_match($expression, $texte, $correspondances) !== 1) {
+        if (1 !== preg_match($expression, $texte, $correspondances)) {
             return null;
         }
 
@@ -154,19 +154,19 @@ final class SenatScrutinParser
 
     private function dateDepuisTitre(string $titre): ?\DateTimeImmutable
     {
-        if (preg_match('/séance du (.+)$/u', $titre, $correspondances) !== 1) {
+        if (1 !== preg_match('/séance du (.+)$/u', $titre, $correspondances)) {
             return null;
         }
 
         $date = $this->normaliser($correspondances[1]);
         $date = (string) preg_replace('/^1er\b/u', '1', $date);
 
-        if (preg_match('/^(\d{1,2})\s+([a-zéûô]+)\s+(\d{4})$/u', mb_strtolower($date, 'UTF-8'), $parts) !== 1) {
+        if (1 !== preg_match('/^(\d{1,2})\s+([a-zéûô]+)\s+(\d{4})$/u', mb_strtolower($date, 'UTF-8'), $parts)) {
             return null;
         }
 
         $mois = self::MOIS[$parts[2]] ?? null;
-        if ($mois === null) {
+        if (null === $mois) {
             return null;
         }
 

@@ -43,7 +43,7 @@ final class ImportManager
         if ($size > $maxBytes) {
             // read last keepBytes
             $fp = fopen($path, 'rb');
-            if ($fp !== false) {
+            if (false !== $fp) {
                 if ($keepBytes > 0) {
                     fseek($fp, -$keepBytes, SEEK_END);
                     $data = stream_get_contents($fp);
@@ -58,9 +58,9 @@ final class ImportManager
 
         // Also keep a preview in the DB for cases where files are removed on restart
         try {
-            $repo = $this->em->getRepository(\App\Entity\ImportJob::class);
+            $repo = $this->em->getRepository(ImportJob::class);
             $job = $repo->findOneBy(['logPath' => $path]);
-            if ($job !== null) {
+            if (null !== $job) {
                 // append to preview and keep last $keepBytes bytes
                 $prev = (string) ($job->getLogPreview() ?? '');
                 $prev .= $line;
@@ -78,7 +78,7 @@ final class ImportManager
 
     public function start(ImportJob $job): ImportJob
     {
-        $logDir = $this->projectDir . '/var/import-logs';
+        $logDir = $this->projectDir.'/var/import-logs';
         if (!is_dir($logDir)) {
             mkdir($logDir, 0777, true);
         }
@@ -108,6 +108,42 @@ final class ImportManager
         return $job;
     }
 
+    /**
+     * Create an ImportJob persisted with its placeholder log and preview.
+     */
+    public function create(string $command, array $params): ImportJob
+    {
+        $args = $this->effectiveOptions($command, $params);
+
+        $job = new ImportJob($command, $args);
+        $this->em->persist($job);
+        $this->em->flush();
+
+        // create placeholder log file so UI can offer download immediately
+        try {
+            $path = $this->newLogPath();
+            @file_put_contents($path, '['.(new \DateTime())->format(DATE_ATOM)."] PLACEHOLDER for job {$job->getId()}\n", LOCK_EX);
+            $job->setLogPath($path);
+            $job->setLogPreview('['.(new \DateTime())->format(DATE_ATOM)."] PLACEHOLDER for job {$job->getId()}\n");
+            $this->em->persist($job);
+            $this->em->flush();
+        } catch (\Throwable) {
+            // ignore placeholder failures
+        }
+
+        return $job;
+    }
+
+    private function newLogPath(): string
+    {
+        $logDir = $this->projectDir.'/var/import-logs';
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0777, true);
+        }
+
+        return sprintf('%s/import-%s-%s.log', $logDir, (new \DateTime())->format('Ymd-His'), bin2hex(random_bytes(4)));
+    }
+
     private function buildCommand(ImportJob $job): string
     {
         $name = $job->getCommand();
@@ -117,12 +153,12 @@ final class ImportManager
 
         $parts = ['php', '-d', 'memory_limit=1G', 'bin/console', $name];
         foreach ($this->effectiveOptions($name, $job->getArgs()) as $k => $v) {
-            $parts[] = $v === true ? '--' . $k : '--' . $k . '=' . $v;
+            $parts[] = true === $v ? '--'.$k : '--'.$k.'='.$v;
         }
 
         // include job id so detached console processes can report progress back to DB
-        if ($job->getId() !== null && $this->commandLoader->get($name)->getDefinition()->hasOption('job-id')) {
-            $parts[] = '--job-id=' . $job->getId();
+        if (null !== $job->getId() && $this->commandLoader->get($name)->getDefinition()->hasOption('job-id')) {
+            $parts[] = '--job-id='.$job->getId();
         }
 
         return implode(' ', array_map('escapeshellarg', $parts));
@@ -145,20 +181,20 @@ final class ImportManager
         $definition = $this->commandLoader->get($command)->getDefinition();
         $options = [];
         foreach ($args as $k => $v) {
-            if (!\is_string($k) || $k === 'job-id' || !$definition->hasOption($k)) {
+            if (!\is_string($k) || 'job-id' === $k || !$definition->hasOption($k)) {
                 continue;
             }
             if (!$definition->getOption($k)->acceptValue()) {
-                if ($v === true || $v === '1' || $v === 'on') {
+                if (true === $v || '1' === $v || 'on' === $v) {
                     $options[$k] = true;
                 }
                 continue;
             }
-            if ($v === null || $v === false || $v === '' || \is_array($v)) {
+            if (null === $v || false === $v || '' === $v || \is_array($v)) {
                 continue;
             }
             // older jobs stored "1" as true
-            $options[$k] = $v === true ? '1' : (string) $v;
+            $options[$k] = true === $v ? '1' : (string) $v;
         }
 
         return $options;
@@ -193,7 +229,7 @@ final class ImportManager
         $jobs = $connection->executeStatement("DELETE FROM import_job WHERE {$finished}");
         $this->em->clear();
 
-        $logDir = $this->projectDir . '/var/import-logs/';
+        $logDir = $this->projectDir.'/var/import-logs/';
         $files = 0;
         foreach ($paths as $path) {
             if (str_starts_with($path, $logDir) && is_file($path) && @unlink($path)) {
@@ -212,7 +248,7 @@ final class ImportManager
         }
 
         // the pid must still be this job's console process (pids get reused after restarts)
-        $cmdline = @file_get_contents('/proc/' . $pid . '/cmdline');
+        $cmdline = @file_get_contents('/proc/'.$pid.'/cmdline');
 
         return \is_string($cmdline) && str_contains($cmdline, 'bin/console') && str_contains($cmdline, $job->getCommand());
     }
@@ -226,7 +262,7 @@ final class ImportManager
      */
     public function reconcile(ImportJob $job): bool
     {
-        if ($job->getStatus() !== 'running' || $job->getId() === null) {
+        if ('running' !== $job->getStatus() || null === $job->getId()) {
             return false;
         }
 
@@ -234,7 +270,7 @@ final class ImportManager
         $changed = false;
 
         $progress = $this->progressFromLog($job->getLogPath());
-        if ($progress !== null && $progress > $job->getProgress()) {
+        if (null !== $progress && $progress > $job->getProgress()) {
             $changed = $connection->executeStatement(
                 "UPDATE import_job SET progress = ? WHERE id = ? AND status = 'running' AND progress < ?",
                 [$progress, $job->getId(), $progress],
@@ -251,7 +287,7 @@ final class ImportManager
             // conditional: the console listener may have just recorded the real outcome
             $interrupted = $connection->executeStatement($sql, [$job->getId()]) > 0;
             $changed = $changed || $interrupted;
-            if ($interrupted && $job->getLogPath() !== null) {
+            if ($interrupted && null !== $job->getLogPath()) {
                 $this->appendLog($job->getLogPath(), sprintf(
                     "[%s] Fin du processus non enregistrée ; d'après le journal : %s.\n",
                     (new \DateTime())->format(DATE_ATOM),
@@ -270,7 +306,7 @@ final class ImportManager
     /** Whether the command's last message is a success block ("[OK] …") rather than an error. */
     private function outcomeFromLog(?string $path): bool
     {
-        if ($path === null || !is_file($path)) {
+        if (null === $path || !is_file($path)) {
             return false;
         }
 
@@ -279,13 +315,13 @@ final class ImportManager
         $ok = strrpos($tail, ' [OK] ');
         $error = max((int) strrpos($tail, ' [ERROR] '), preg_match_all('#^In \S+ line \d+:#m', $tail, $m, PREG_OFFSET_CAPTURE) ? (int) end($m[0])[1] : 0);
 
-        return $ok !== false && $ok > $error;
+        return false !== $ok && $ok > $error;
     }
 
     /** Last percentage printed by a console progress bar (" 12/40 [▓▓░░]  30%") in the log. */
     public function progressFromLog(?string $path): ?int
     {
-        if ($path === null || !is_file($path)) {
+        if (null === $path || !is_file($path)) {
             return null;
         }
 
@@ -302,17 +338,20 @@ final class ImportManager
 
     public function tailLog(?string $path, int $lines = 200): string
     {
-        if ($path === null || !is_file($path)) {
+        if (null === $path || !is_file($path)) {
             // fallback to DB preview if available
             try {
-                $repo = $this->em->getRepository(\App\Entity\ImportJob::class);
+                $repo = $this->em->getRepository(ImportJob::class);
                 $job = $repo->findOneBy(['logPath' => $path]);
-                if ($job !== null && $job->getLogPreview() !== null) {
+                if (null !== $job && null !== $job->getLogPreview()) {
                     $content = (string) $job->getLogPreview();
                     // return last $lines lines
                     $parts = preg_split('/\R/', $content);
-                    if ($parts === false) return $content;
+                    if (false === $parts) {
+                        return $content;
+                    }
                     $last = array_slice($parts, -$lines);
+
                     return implode("\n", $last);
                 }
             } catch (\Throwable) {
@@ -335,7 +374,7 @@ final class ImportManager
         $this->em->flush();
 
         $pid = $job->getPid();
-        if ($pid === null) {
+        if (null === $pid) {
             // nothing else to do: in-process handler should observe cancelRequested
             return true;
         }

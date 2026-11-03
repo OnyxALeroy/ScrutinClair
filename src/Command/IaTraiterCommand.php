@@ -7,8 +7,8 @@ use App\Enum\Chambre;
 use App\Enum\Theme;
 use App\Repository\TagRepository;
 use App\Repository\TexteRepository;
-use App\Service\AmendementResolver;
 use App\Service\AiAvailability;
+use App\Service\AmendementResolver;
 use App\Service\ThemeClassifier;
 use App\Service\TitreCourtGenerator;
 use App\Service\VulgarisationGenerator;
@@ -73,7 +73,7 @@ final class IaTraiterCommand extends Command
         $faireTitre = !(bool) $input->getOption('skip-titre');
         $faireTags = !(bool) $input->getOption('skip-tags');
         $faireResume = !(bool) $input->getOption('skip-resume');
-        $limit = $input->getOption('limit') !== null ? (int) $input->getOption('limit') : null;
+        $limit = null !== $input->getOption('limit') ? (int) $input->getOption('limit') : null;
         $uid = $input->getOption('uid');
         try {
             $chambre = Chambre::depuisFiltre((string) $input->getOption('chambre'));
@@ -98,7 +98,7 @@ final class IaTraiterCommand extends Command
             $force ? 'oui' : 'non',
         ));
 
-        if ($total === 0) {
+        if (0 === $total) {
             $io->success('Rien à faire.');
 
             return Command::SUCCESS;
@@ -116,22 +116,22 @@ final class IaTraiterCommand extends Command
 
         foreach ($textes as $texte) {
             ++$index;
-            $identifiant = $texte->getUidScrutin() ?? ('#' . $texte->getId());
+            $identifiant = $texte->getUidScrutin() ?? ('#'.$texte->getId());
             $t0 = microtime(true);
 
             try {
                 $this->traiterTexte($texte, $identifiant, $force, $faireTitre, $faireTags, $faireResume, $bar, $stats, $erreurs);
             } catch (\Throwable $e) {
-                $stats['erreur']++;
+                ++$stats['erreur'];
                 $erreurs[] = sprintf('%s : %s', $identifiant, $e->getMessage());
-                if ($bar !== null) {
+                if (null !== $bar) {
                     $bar->setMessage(sprintf('%s — erreur globale (%.1fs)', $identifiant, microtime(true) - $t0));
                 } else {
                     $io->writeln(sprintf('[%d/%d] %s — erreur globale (%.1fs)', $index, $total, $identifiant, microtime(true) - $t0));
                 }
             }
 
-            if ($bar !== null) {
+            if (null !== $bar) {
                 $bar->advance();
             }
         }
@@ -142,22 +142,22 @@ final class IaTraiterCommand extends Command
         $dureeTotale = microtime(true) - $debut;
         $this->afficherBilan($io, $stats, $dureeTotale, $total);
 
-        if ($erreurs !== []) {
+        if ([] !== $erreurs) {
             $io->section('Échecs');
             foreach (array_slice($erreurs, 0, 40) as $erreur) {
-                $io->writeln(' - ' . $erreur);
+                $io->writeln(' - '.$erreur);
             }
             if (\count($erreurs) > 40) {
                 $io->writeln(sprintf('  ... et %d autres erreurs', \count($erreurs) - 40));
             }
         }
 
-        return $erreurs === [] ? Command::SUCCESS : Command::FAILURE;
+        return [] === $erreurs ? Command::SUCCESS : Command::FAILURE;
     }
 
     /**
      * @param array{titre_ok:int,titre_skip:int,tags_ok:int,tags_skip:int,resume_ok:int,resume_no_source:int,resume_skip:int,erreur:int} $stats
-     * @param list<string> $erreurs
+     * @param list<string>                                                                                                               $erreurs
      */
     private function traiterTexte(Texte $texte, string $identifiant, bool $force, bool $faireTitre, bool $faireTags, bool $faireResume, $bar, array &$stats, array &$erreurs): void
     {
@@ -172,82 +172,82 @@ final class IaTraiterCommand extends Command
 
         // 1) Titre court
         if (!$faireTitre) {
-            $stats['titre_skip']++;
+            ++$stats['titre_skip'];
         } elseif (!$force && $this->aTitreCourt($texte)) {
-            $stats['titre_skip']++;
+            ++$stats['titre_skip'];
         } else {
-            if ($bar !== null) {
+            if (null !== $bar) {
                 $bar->setMessage(sprintf('%s — titre court', $identifiant));
             }
             try {
                 if (mb_strlen($titreLong) <= TitreCourtGenerator::LONGUEUR_MAX) {
                     $texte->setTitreCourt($titreLong)->setTitreCourtAt(new \DateTimeImmutable());
-                    $stats['titre_ok']++;
+                    ++$stats['titre_ok'];
                 } else {
                     $titreCourt = $this->titreCourtGenerator->generer($titreLong, $texte->getSynthese());
-                    if ($titreCourt !== null && trim($titreCourt) !== '') {
+                    if (null !== $titreCourt && '' !== trim($titreCourt)) {
                         $texte->setTitreCourt(trim($titreCourt))->setTitreCourtAt(new \DateTimeImmutable());
-                        $stats['titre_ok']++;
+                        ++$stats['titre_ok'];
                     } else {
                         // rien d'exploitable : on laisse vide, on ne bloque pas
-                        $stats['titre_skip']++;
+                        ++$stats['titre_skip'];
                     }
                 }
                 $this->entityManager->flush();
             } catch (\Throwable $e) {
-                $stats['erreur']++;
+                ++$stats['erreur'];
                 $erreurs[] = sprintf('%s [titre] : %s', $identifiant, $e->getMessage());
             }
         }
 
         // 2) Tags
         if (!$faireTags) {
-            $stats['tags_skip']++;
+            ++$stats['tags_skip'];
         } elseif (!$force && $this->aDesTags($texte)) {
-            $stats['tags_skip']++;
+            ++$stats['tags_skip'];
         } else {
-            if ($bar !== null) {
+            if (null !== $bar) {
                 $bar->setMessage(sprintf('%s — tags', $identifiant));
             }
             try {
-                $contenu = trim(($texte->getObjet() ?? '') . ' ' . ($texte->getTitre() ?? ''));
+                $contenu = trim(($texte->getObjet() ?? '').' '.($texte->getTitre() ?? ''));
                 $amendement = $this->amendements->resolve($texte);
-                if ($amendement !== null) {
+                if (null !== $amendement) {
                     $extrait = trim((string) ($amendement['contenu'] ?? ''));
-                    if ($extrait !== '') {
-                        $contenu .= "\n" . mb_substr($extrait, 0, self::EXTRAIT_AMENDEMENT);
+                    if ('' !== $extrait) {
+                        $contenu .= "\n".mb_substr($extrait, 0, self::EXTRAIT_AMENDEMENT);
                     }
                 }
 
                 $themes = $this->classifieur->classer($contenu);
                 $this->attacherThemes($texte, $themes);
                 $this->entityManager->flush();
-                if ($themes !== []) {
-                    $stats['tags_ok']++;
+                if ([] !== $themes) {
+                    ++$stats['tags_ok'];
                 } else {
-                    $stats['tags_skip']++;
+                    ++$stats['tags_skip'];
                 }
             } catch (\Throwable $e) {
-                $stats['erreur']++;
+                ++$stats['erreur'];
                 $erreurs[] = sprintf('%s [tags] : %s', $identifiant, $e->getMessage());
             }
         }
 
         // 3) Résumé/vulgarisation
         if (!$faireResume) {
-            $stats['resume_skip']++;
-        } elseif (!$force && $texte->getVulgarisation() !== null) {
-            $stats['resume_skip']++;
+            ++$stats['resume_skip'];
+        } elseif (!$force && null !== $texte->getVulgarisation()) {
+            ++$stats['resume_skip'];
         } else {
-            if ($bar !== null) {
+            if (null !== $bar) {
                 $bar->setMessage(sprintf('%s — résumé', $identifiant));
             }
             try {
                 $resultat = $this->vulgarisationGenerator->generer($texte, null);
-                if ($resultat === null) {
+                if (null === $resultat) {
                     $texte->setVulgarisationStatut('no_source');
                     $this->entityManager->flush();
-                    $stats['resume_no_source']++;
+                    ++$stats['resume_no_source'];
                 } else {
                     $texte->setVulgarisation((string) ($resultat['contenu'] ?? ''));
                     $texte->setVulgarisationSource($resultat['source'] ?? null);
@@ -255,15 +255,15 @@ final class IaTraiterCommand extends Command
                     $texte->setVulgarisationAt(new \DateTimeImmutable());
                     if (!empty($resultat['themes']) && \is_array($resultat['themes'])) {
                         $themes = array_values(array_filter($resultat['themes'], static fn ($t): bool => $t instanceof Theme));
-                        if ($themes !== []) {
+                        if ([] !== $themes) {
                             $this->attacherThemes($texte, $themes);
                         }
                     }
                     $this->entityManager->flush();
-                    $stats['resume_ok']++;
+                    ++$stats['resume_ok'];
                 }
             } catch (\Throwable $e) {
-                $stats['erreur']++;
+                ++$stats['erreur'];
                 $erreurs[] = sprintf('%s [resume] : %s', $identifiant, $e->getMessage());
                 try {
                     $texte->setVulgarisationStatut('error');
@@ -278,7 +278,7 @@ final class IaTraiterCommand extends Command
     {
         $tc = $texte->getTitreCourt();
 
-        return \is_string($tc) && trim($tc) !== '';
+        return \is_string($tc) && '' !== trim($tc);
     }
 
     private function aDesTags(Texte $texte): bool
@@ -291,7 +291,7 @@ final class IaTraiterCommand extends Command
      */
     private function attacherThemes(Texte $texte, array $themes): void
     {
-        if ($themes === []) {
+        if ([] === $themes) {
             return;
         }
 
@@ -303,7 +303,7 @@ final class IaTraiterCommand extends Command
             $tags[] = $this->tags->obtenirPour($theme);
         }
 
-        if ($tags !== []) {
+        if ([] !== $tags) {
             $texte->setThemes($tags);
         }
     }
@@ -313,7 +313,7 @@ final class IaTraiterCommand extends Command
      */
     private function decouperShards(?string $valeur): array
     {
-        if ($valeur === null || $valeur === '') {
+        if (null === $valeur || '' === $valeur) {
             return [null, null];
         }
 

@@ -11,7 +11,6 @@ use App\Service\PersonnalitePolitiqueImporter;
 use App\Service\ResilientDownloader;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use ZipArchive;
 
 final class PersonnalitePolitiqueImporterTest extends KernelTestCase
 {
@@ -21,8 +20,8 @@ final class PersonnalitePolitiqueImporterTest extends KernelTestCase
     {
         self::bootKernel();
 
-        $this->projectDir = sys_get_temp_dir() . '/scrutinclair-import-' . bin2hex(random_bytes(6));
-        mkdir($this->projectDir . '/data', 0777, true);
+        $this->projectDir = sys_get_temp_dir().'/scrutinclair-import-'.bin2hex(random_bytes(6));
+        mkdir($this->projectDir.'/data', 0777, true);
     }
 
     protected function tearDown(): void
@@ -31,14 +30,14 @@ final class PersonnalitePolitiqueImporterTest extends KernelTestCase
         $em = $container->get(EntityManagerInterface::class);
 
         $gouvernement = $container->get(GouvernementRepository::class)->findOneBy(['nom' => 'TEST-IMPORT']);
-        if ($gouvernement !== null) {
+        if (null !== $gouvernement) {
             $em->remove($gouvernement);
             $em->flush();
         }
 
         foreach (['TestImport', 'TestImportMission'] as $nom) {
             $personnalite = $container->get(PersonnalitePolitiqueRepository::class)->findOneBy(['nom' => $nom]);
-            if ($personnalite !== null) {
+            if (null !== $personnalite) {
                 $em->remove($personnalite);
                 $em->flush();
             }
@@ -51,9 +50,9 @@ final class PersonnalitePolitiqueImporterTest extends KernelTestCase
 
     public function testImportsGovernmentMembersAndCreatesMissingPersonalities(): void
     {
-        $gouvernementUid = 'GOUV' . bin2hex(random_bytes(4));
-        $ministereUid = 'MIN' . bin2hex(random_bytes(4));
-        $acteurUid = 'PA' . bin2hex(random_bytes(4));
+        $gouvernementUid = 'GOUV'.bin2hex(random_bytes(4));
+        $ministereUid = 'MIN'.bin2hex(random_bytes(4));
+        $acteurUid = 'PA'.bin2hex(random_bytes(4));
 
         $this->createArchive($gouvernementUid, $ministereUid, $acteurUid);
 
@@ -93,8 +92,8 @@ final class PersonnalitePolitiqueImporterTest extends KernelTestCase
 
     private function createArchive(string $gouvernementUid, string $ministereUid, string $acteurUid): void
     {
-        $zip = new ZipArchive();
-        self::assertTrue($zip->open($this->projectDir . '/data/gouvernements.zip', ZipArchive::CREATE | ZipArchive::OVERWRITE));
+        $zip = new \ZipArchive();
+        self::assertTrue($zip->open($this->projectDir.'/data/gouvernements.zip', \ZipArchive::CREATE | \ZipArchive::OVERWRITE));
 
         $zip->addFromString("json/organe/{$gouvernementUid}.json", json_encode([
             'organe' => [
@@ -133,7 +132,7 @@ final class PersonnalitePolitiqueImporterTest extends KernelTestCase
             ],
         ], JSON_THROW_ON_ERROR));
 
-        $enMissionUid = 'PA' . bin2hex(random_bytes(4));
+        $enMissionUid = 'PA'.bin2hex(random_bytes(4));
         $zip->addFromString("json/acteur/{$enMissionUid}.json", json_encode([
             'acteur' => [
                 'uid' => $enMissionUid,

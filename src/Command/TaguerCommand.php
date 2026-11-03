@@ -63,7 +63,7 @@ final class TaguerCommand extends Command
         }
 
         $force = (bool) $input->getOption('force');
-        $limit = $input->getOption('limit') !== null ? (int) $input->getOption('limit') : null;
+        $limit = null !== $input->getOption('limit') ? (int) $input->getOption('limit') : null;
         $uid = $input->getOption('uid');
         try {
             $chambre = Chambre::depuisFiltre((string) $input->getOption('chambre'));
@@ -85,7 +85,7 @@ final class TaguerCommand extends Command
             $total,
         ));
 
-        if ($total === 0) {
+        if (0 === $total) {
             $io->success('Rien à faire.');
 
             return Command::SUCCESS;
@@ -104,30 +104,30 @@ final class TaguerCommand extends Command
 
         foreach ($textes as $texte) {
             ++$index;
-            $identifiant = $texte->getUidScrutin() ?? ('#' . $texte->getId());
+            $identifiant = $texte->getUidScrutin() ?? ('#'.$texte->getId());
             $t0 = microtime(true);
 
             try {
                 $themes = $this->classer($texte);
 
-                if ($themes === []) {
-                    $stats['sans_theme']++;
+                if ([] === $themes) {
+                    ++$stats['sans_theme'];
                     $statut = 'sans_theme';
                 } else {
                     $this->attacherThemes($texte, $themes);
                     $this->entityManager->flush();
-                    $stats['ok']++;
+                    ++$stats['ok'];
                     $statut = implode(', ', array_map(static fn (Theme $t): string => $t->label(), $themes));
                 }
             } catch (\Throwable $e) {
-                $stats['erreur']++;
+                ++$stats['erreur'];
                 $statut = 'erreur';
                 $erreurs[] = sprintf('%s : %s', $identifiant, $e->getMessage());
             }
 
             $duree = microtime(true) - $t0;
 
-            if ($bar !== null) {
+            if (null !== $bar) {
                 $bar->setMessage(sprintf('%s — %s (%.1fs)', $identifiant, $statut, $duree));
                 $bar->advance();
             } else {
@@ -141,14 +141,14 @@ final class TaguerCommand extends Command
         $dureeTotale = microtime(true) - $debut;
         $this->afficherBilan($io, $stats, $dureeTotale, $total);
 
-        if ($erreurs !== []) {
+        if ([] !== $erreurs) {
             $io->section('Échecs');
             foreach ($erreurs as $erreur) {
-                $io->writeln(' - ' . $erreur);
+                $io->writeln(' - '.$erreur);
             }
         }
 
-        return $erreurs === [] ? Command::SUCCESS : Command::FAILURE;
+        return [] === $erreurs ? Command::SUCCESS : Command::FAILURE;
     }
 
     /**
@@ -159,13 +159,13 @@ final class TaguerCommand extends Command
      */
     private function classer(Texte $texte): array
     {
-        $contenu = trim(($texte->getObjet() ?? '') . ' ' . ($texte->getTitre() ?? ''));
+        $contenu = trim(($texte->getObjet() ?? '').' '.($texte->getTitre() ?? ''));
 
         $amendement = $this->amendements->resolve($texte);
-        if ($amendement !== null) {
+        if (null !== $amendement) {
             $extrait = trim($amendement['contenu']);
-            if ($extrait !== '') {
-                $contenu .= "\n" . mb_substr($extrait, 0, self::EXTRAIT);
+            if ('' !== $extrait) {
+                $contenu .= "\n".mb_substr($extrait, 0, self::EXTRAIT);
             }
         }
 
@@ -190,7 +190,7 @@ final class TaguerCommand extends Command
      */
     private function decouperShards(?string $valeur): array
     {
-        if ($valeur === null || $valeur === '') {
+        if (null === $valeur || '' === $valeur) {
             return [null, null];
         }
 

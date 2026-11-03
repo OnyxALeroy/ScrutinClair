@@ -55,7 +55,7 @@ final class RenommerCommand extends Command
         }
 
         $force = (bool) $input->getOption('force');
-        $limit = $input->getOption('limit') !== null ? (int) $input->getOption('limit') : null;
+        $limit = null !== $input->getOption('limit') ? (int) $input->getOption('limit') : null;
         $uid = $input->getOption('uid');
         try {
             $chambre = Chambre::depuisFiltre((string) $input->getOption('chambre'));
@@ -77,7 +77,7 @@ final class RenommerCommand extends Command
             $total,
         ));
 
-        if ($total === 0) {
+        if (0 === $total) {
             $io->success('Rien à faire.');
 
             return Command::SUCCESS;
@@ -96,26 +96,26 @@ final class RenommerCommand extends Command
 
         foreach ($textes as $texte) {
             ++$index;
-            $identifiant = $texte->getUidScrutin() ?? ('#' . $texte->getId());
+            $identifiant = $texte->getUidScrutin() ?? ('#'.$texte->getId());
             $t0 = microtime(true);
 
             try {
                 $titreCourt = $this->genererPour($texte);
 
-                if ($titreCourt === null) {
-                    if ($force && $texte->getTitreCourt() !== null) {
+                if (null === $titreCourt) {
+                    if ($force && null !== $texte->getTitreCourt()) {
                         $texte->setTitreCourt(null)->setTitreCourtAt(null);
                         $this->entityManager->flush();
                     }
 
-                    $stats['sans_titre']++;
+                    ++$stats['sans_titre'];
                     $statut = 'aucun titre court';
                 } else {
                     $titreCourt = trim($titreCourt);
                     $texte->setTitreCourt($titreCourt)->setTitreCourtAt(new \DateTimeImmutable());
                     $this->entityManager->flush();
                     $estIa = $titreCourt !== $texte->getTitreLong();
-                    $stats[$estIa ? 'ia' : 'tel_quel']++;
+                    ++$stats[$estIa ? 'ia' : 'tel_quel'];
                     $statut = $estIa ? $titreCourt : 'déjà court, inchangé';
                 }
 
@@ -123,14 +123,14 @@ final class RenommerCommand extends Command
                     $resultats[] = [$identifiant, mb_substr($texte->getTitreLong(), 0, 95), $titreCourt ?? '—'];
                 }
             } catch (\Throwable $e) {
-                $stats['erreur']++;
+                ++$stats['erreur'];
                 $statut = 'erreur';
-                $resultats[] = [$identifiant, mb_substr($texte->getTitreLong(), 0, 95), 'ERREUR : ' . $e->getMessage()];
+                $resultats[] = [$identifiant, mb_substr($texte->getTitreLong(), 0, 95), 'ERREUR : '.$e->getMessage()];
             }
 
             $duree = microtime(true) - $t0;
 
-            if ($bar !== null) {
+            if (null !== $bar) {
                 $bar->setMessage(sprintf('%s — %s (%.1fs)', $identifiant, $statut, $duree));
                 $bar->advance();
             } else {
@@ -141,14 +141,14 @@ final class RenommerCommand extends Command
         $bar?->finish();
         $io->newLine(2);
 
-        if ($output->isVerbose() && $resultats !== []) {
+        if ($output->isVerbose() && [] !== $resultats) {
             $io->section('Échantillon des titres générés');
             $io->table(['Scrutin', 'Titre officiel', 'Titre court'], $resultats);
         }
 
         $this->afficherBilan($io, $stats, microtime(true) - $debut, $total);
 
-        return $stats['erreur'] === 0 ? Command::SUCCESS : Command::FAILURE;
+        return 0 === $stats['erreur'] ? Command::SUCCESS : Command::FAILURE;
     }
 
     /**
@@ -172,7 +172,7 @@ final class RenommerCommand extends Command
      */
     private function decouperShards(?string $valeur): array
     {
-        if ($valeur === null || $valeur === '') {
+        if (null === $valeur || '' === $valeur) {
             return [null, null];
         }
 

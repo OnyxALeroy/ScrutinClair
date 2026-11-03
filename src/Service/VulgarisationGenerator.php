@@ -43,7 +43,7 @@ final class VulgarisationGenerator
     {
         if ($this->estScrutinAmendement($texte)) {
             $amendement = $this->amendements->resolve($texte);
-            if ($amendement !== null && trim($amendement['contenu']) !== '') {
+            if (null !== $amendement && '' !== trim($amendement['contenu'])) {
                 return [
                     'type' => 'amendement',
                     'source' => $amendement['amendementUid'],
@@ -55,12 +55,12 @@ final class VulgarisationGenerator
         }
 
         $dossierRef = $texte->getDossierRef();
-        if ($dossierRef !== null && $dossierRef !== '') {
+        if (null !== $dossierRef && '' !== $dossierRef) {
             $uid = $this->dossiers->texteUidForDossier($dossierRef);
-            if ($uid !== null) {
+            if (null !== $uid) {
                 return [
                     'type' => 'dossier',
-                    'source' => 'dossier:' . $dossierRef,
+                    'source' => 'dossier:'.$dossierRef,
                     'dossierRef' => $dossierRef,
                     'uid' => $uid,
                     'amendement' => null,
@@ -79,22 +79,22 @@ final class VulgarisationGenerator
     public function generer(Texte $texte, ?callable $onEtape = null): ?array
     {
         $source = $this->resoudre($texte);
-        if ($source === null) {
+        if (null === $source) {
             return null;
         }
 
         // 1. Vulgarisation du texte de loi (mutualisée par dossier).
         $vulgLoi = null;
         $themes = [];
-        if ($source['dossierRef'] !== null) {
+        if (null !== $source['dossierRef']) {
             $dossier = $this->vulgarisationDossier($source['dossierRef'], $onEtape);
             $vulgLoi = $dossier['contenu'];
             $themes = $dossier['themes'];
         }
 
         // 2. Scrutin sur amendement : on ajoute la vulgarisation de l'amendement.
-        if ($source['type'] === 'amendement' && $source['amendement'] !== null) {
-            if ($onEtape !== null) {
+        if ('amendement' === $source['type'] && null !== $source['amendement']) {
+            if (null !== $onEtape) {
                 $onEtape('amendement', 1, 1);
             }
 
@@ -112,7 +112,7 @@ final class VulgarisationGenerator
             ];
         }
 
-        if ($vulgLoi === null) {
+        if (null === $vulgLoi) {
             return null;
         }
 
@@ -129,7 +129,7 @@ final class VulgarisationGenerator
     private function vulgarisationDossier(string $dossierRef, ?callable $onEtape): array
     {
         $cache = $this->vulgarisationDossierRepository->findOneBy(['dossierRef' => $dossierRef]);
-        if ($cache !== null && $cache->getContenu() !== null) {
+        if (null !== $cache && null !== $cache->getContenu()) {
             return [
                 'contenu' => $cache->getContenu(),
                 'themes' => $this->themesDepuisCache($cache),
@@ -137,26 +137,26 @@ final class VulgarisationGenerator
         }
 
         $uids = $this->dossiers->texteUidsForDossier($dossierRef);
-        if ($uids === []) {
+        if ([] === $uids) {
             return ['contenu' => null, 'themes' => []];
         }
 
         $contenu = null;
         foreach ($uids as $uid) {
             $contenu = $this->fetchDocumentText($uid);
-            if ($contenu !== null && trim($contenu) !== '') {
+            if (null !== $contenu && '' !== trim($contenu)) {
                 break;
             }
             $contenu = null;
         }
 
-        if ($contenu === null) {
+        if (null === $contenu) {
             return ['contenu' => null, 'themes' => []];
         }
 
         $vulgarisation = $this->vulgarisateur->vulgariserTexteLoi(
             $contenu,
-            $onEtape === null ? null : static fn (int $courant, int $total) => $onEtape('loi', $courant, $total),
+            null === $onEtape ? null : static fn (int $courant, int $total) => $onEtape('loi', $courant, $total),
         );
 
         // Le dossier est classé sur sa synthèse : c'est elle qui résume le
@@ -185,22 +185,22 @@ final class VulgarisationGenerator
         $themes = [];
         foreach ($cache->getThemes() ?? [] as $libelle) {
             $theme = Theme::fromLabel($libelle);
-            if ($theme !== null) {
+            if (null !== $theme) {
                 $themes[] = $theme;
             }
         }
 
-        if ($themes !== []) {
+        if ([] !== $themes) {
             return $themes;
         }
 
         $contenu = $cache->getContenu();
-        if ($contenu === null || trim($contenu) === '') {
+        if (null === $contenu || '' === trim($contenu)) {
             return [];
         }
 
         $themes = $this->classifieur->classer($contenu);
-        if ($themes !== []) {
+        if ([] !== $themes) {
             $cache->setThemes($this->libelles($themes));
             $this->entityManager->flush();
         }
@@ -243,7 +243,7 @@ final class VulgarisationGenerator
                 'http_version' => '1.1',
             ]);
 
-            if ($response->getStatusCode() !== 200) {
+            if (200 !== $response->getStatusCode()) {
                 return null;
             }
 

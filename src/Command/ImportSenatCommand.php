@@ -49,9 +49,9 @@ final class ImportSenatCommand extends Command
             $io->section('Sénateurs et groupes');
             // pass progress callback when job-id provided (detached mode)
             $callback = null;
-            if ($jobId !== null) {
+            if (null !== $jobId) {
                 $em = $this->getApplication()->getKernel()->getContainer()->get('doctrine')->getManager();
-                $callback = function(int $pct) use ($em, $jobId, $partPersonnalites) {
+                $callback = function (int $pct) use ($em, $jobId, $partPersonnalites) {
                     $repo = $em->getRepository(\App\Entity\ImportJob::class);
                     $job = $repo->find((int) $jobId);
                     if ($job) {
@@ -74,13 +74,13 @@ final class ImportSenatCommand extends Command
             $io->section('Scrutins');
             $debut = max(2006, (int) $input->getOption('from-year'));
             $fin = max($debut, (int) $input->getOption('to-year'));
-            $limite = $input->getOption('limit') !== null ? max(0, (int) $input->getOption('limit')) : null;
+            $limite = null !== $input->getOption('limit') ? max(0, (int) $input->getOption('limit')) : null;
 
             // progress callback for detached mode
             $scrutinCallback = null;
-            if ($jobId !== null) {
+            if (null !== $jobId) {
                 $em = $this->getApplication()->getKernel()->getContainer()->get('doctrine')->getManager();
-                $scrutinCallback = function(int $pct) use ($em, $jobId, $partPersonnalites) {
+                $scrutinCallback = function (int $pct) use ($em, $jobId, $partPersonnalites) {
                     $repo = $em->getRepository(\App\Entity\ImportJob::class);
                     $job = $repo->find((int) $jobId);
                     if ($job) {

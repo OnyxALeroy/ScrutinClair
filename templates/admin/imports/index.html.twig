@@ -11,9 +11,14 @@
         {% endfor %}
     {% endfor %}
 
+    {% if app.user %}
+        <p style="margin-top:0.5rem"><a class="btn btn--ghost btn--sm" href="{{ path('app_logout') }}">Se déconnecter</a></p>
+    {% endif %}
+
     <section class="card">
         <h2>Lancer une importation / traitement</h2>
         <form method="post" action="{{ path('admin_imports_start') }}" id="import-form">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin-imports') }}">
             <div class="form-row">
                 <label class="form-label">Commande</label>
                 <div>
@@ -101,6 +106,7 @@
                 <details class="confirm-inline">
                     <summary class="btn btn--ghost btn--sm">Vider l'historique</summary>
                     <form method="post" action="{{ path('admin_imports_clear') }}" class="confirm-inline__panel">
+                        <input type="hidden" name="_token" value="{{ csrf_token('admin-imports') }}">
                         <span>Supprimer les tâches terminées, en échec ou annulées et leurs journaux ? Les tâches en cours sont conservées.</span>
                         <button class="btn btn--danger btn--sm" type="submit">Oui, supprimer</button>
                     </form>
@@ -169,6 +175,7 @@
                                         <details class="confirm-inline">
                                             <summary class="btn btn--danger btn--sm">Annuler</summary>
                                             <form method="post" action="{{ path('admin_imports_cancel', {id: job.id}) }}" class="confirm-inline__panel">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('admin-imports') }}">
                                                 <span>Arrêter cette tâche ?</span>
                                                 <button class="btn btn--danger btn--sm" type="submit">Oui, arrêter</button>
                                             </form>

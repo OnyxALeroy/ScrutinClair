@@ -48,6 +48,12 @@ up-light: ## Démarre la stack SANS Ollama (dev léger : aucun rapport IA ne peu
 	$(COMPOSE) --profile ai stop $(OLLAMA) || true
 	AI_ENABLED=0 $(COMPOSE) up -d
 
+up-prod: ## Démarre la stack en mode production (utilise compose.prod.yaml)
+	$(COMPOSE) -f docker-compose.yml -f compose.prod.yaml up -d
+	docker compose exec $(PHP) composer install --no-dev --optimize-autoloader
+	docker compose exec $(PHP) bin/console doctrine:migrations:migrate -n
+	docker compose exec $(PHP) bin/console cache:warmup --env=prod
+
 down: ## Arrête et supprime les conteneurs
 	$(COMPOSE) --profile ai down
 
@@ -147,6 +153,14 @@ ia-status: ## Affiche l'avancement du traitement IA (titre court, tags, résumé
 test: ## Migre la base de test puis lance la suite PHPUnit
 	docker compose exec $(PHP) php -d memory_limit=1G bin/console doctrine:migrations:migrate --env=test --no-interaction
 	docker compose exec $(PHP) vendor/bin/phpunit
+
+cs: ## Lance php-cs-fixer fix
+	docker compose exec $(PHP) vendor/bin/php-cs-fixer fix
+
+lint: ## Lance les lints Symfony (container, twig, yaml)
+	docker compose exec $(PHP) bin/console lint:container
+	docker compose exec $(PHP) bin/console lint:twig templates/
+	docker compose exec $(PHP) bin/console lint:yaml config/
 
 
 ## --- Utils ---

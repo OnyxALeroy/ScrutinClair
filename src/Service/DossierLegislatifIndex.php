@@ -3,7 +3,6 @@
 namespace App\Service;
 
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use ZipArchive;
 
 /**
  * Indexe le jeu de données « Dossiers législatifs » de l'Assemblée
@@ -51,7 +50,7 @@ final class DossierLegislatifIndex
     public function texteUidsForDossier(string $dossierRef): array
     {
         $documents = $this->documentsForDossier($dossierRef);
-        if ($documents === []) {
+        if ([] === $documents) {
             return [];
         }
 
@@ -63,7 +62,7 @@ final class DossierLegislatifIndex
     public function dossierTitle(string $dossierRef): ?string
     {
         foreach ($this->documentsForDossier($dossierRef) as $document) {
-            if ($document['titre'] !== null && $document['titre'] !== '') {
+            if (null !== $document['titre'] && '' !== $document['titre']) {
                 return $document['titre'];
             }
         }
@@ -73,22 +72,22 @@ final class DossierLegislatifIndex
 
     private function ensureIndex(): void
     {
-        if ($this->documentsByDossier !== null) {
+        if (null !== $this->documentsByDossier) {
             return;
         }
 
         $this->documentsByDossier = [];
 
-        $dataDir = $this->projectDir . '/data';
+        $dataDir = $this->projectDir.'/data';
         if (!is_dir($dataDir)) {
             mkdir($dataDir, 0777, true);
         }
 
-        $zipPath = $dataDir . '/dossiers.zip';
+        $zipPath = $dataDir.'/dossiers.zip';
         $this->downloader->download($this->urls->dossiersZipUrl(), $zipPath);
 
-        $zip = new ZipArchive();
-        if ($zip->open($zipPath) !== true) {
+        $zip = new \ZipArchive();
+        if (true !== $zip->open($zipPath)) {
             throw new \RuntimeException('Impossible d\'ouvrir l\'archive des dossiers législatifs.');
         }
 
@@ -99,7 +98,7 @@ final class DossierLegislatifIndex
             }
 
             $raw = $zip->getFromIndex($i);
-            if ($raw === false) {
+            if (false === $raw) {
                 continue;
             }
 
@@ -111,12 +110,12 @@ final class DossierLegislatifIndex
 
             $uid = $document['uid'] ?? null;
             $dossierRef = $document['dossierRef'] ?? null;
-            if (!\is_string($uid) || !is_string($dossierRef) || $dossierRef === '') {
+            if (!\is_string($uid) || !is_string($dossierRef) || '' === $dossierRef) {
                 continue;
             }
 
             $score = $this->scoreDocument($uid);
-            if ($score === 0) {
+            if (0 === $score) {
                 continue;
             }
 
@@ -154,13 +153,13 @@ final class DossierLegislatifIndex
         // On ne garde que les projets / propositions de loi de l'Assemblée
         // (l'opendata n'expose que les textes de l'AN ; on exclut Sénat,
         // rapports, études d'impact, avis du Conseil d'État, amendements…).
-        if (preg_match('/^(?:PRJL|PION)ANR\d+/i', $uid) !== 1) {
+        if (1 !== preg_match('/^(?:PRJL|PION)ANR\d+/i', $uid)) {
             return 0;
         }
 
         return match (true) {
-            preg_match('/BTC\d+$/', $uid) === 1 => 100,
-            preg_match('/BTA\d+$/', $uid) === 1 => 90,
+            1 === preg_match('/BTC\d+$/', $uid) => 100,
+            1 === preg_match('/BTA\d+$/', $uid) => 90,
             default => 50,
         };
     }

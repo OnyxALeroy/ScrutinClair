@@ -39,7 +39,7 @@ final class ThemeClassifier
     public function classer(string $contenu): array
     {
         $contenu = trim($contenu);
-        if ($contenu === '') {
+        if ('' === $contenu) {
             return [];
         }
 
@@ -54,7 +54,7 @@ final class ThemeClassifier
         }
 
         $themes = $this->extraireThemes($reponse);
-        if ($themes !== []) {
+        if ([] !== $themes) {
             return $themes;
         }
 
@@ -64,7 +64,7 @@ final class ThemeClassifier
             $reponse = $this->ollama->chatJson(
                 self::SYSTEME,
                 $this->construirePrompt($contenu)
-                    . "\n\nRéponds uniquement par {\"themes\": []} si aucun thème ne correspond.",
+                    ."\n\nRéponds uniquement par {\"themes\": []} si aucun thème ne correspond.",
                 ['temperature' => 0, 'num_predict' => self::NUM_PREDICT],
             );
         } catch (\Throwable) {
@@ -79,15 +79,14 @@ final class ThemeClassifier
         $extrait = mb_substr($contenu, 0, self::TAILLE_MAX);
 
         return "Voici un texte de loi ou un amendement de l'Assemblée nationale.\n"
-            . "Choisis les thèmes du catalogue ci-dessous qui correspondent le mieux à son contenu, "
-            . "par ordre de pertinence. Un seul thème peut suffire : n'en ajoute un deuxième que "
-            . "s'il est lui aussi clairement pertinent. Si aucun thème ne correspond, "
-            . "renvoie une liste vide.\n\n"
-            . "CATALOGUE :\n" . Theme::catalogueCourtPourModele() . "\n\n"
-            . "Réponds uniquement par un objet JSON de la forme :\n"
-            . '{"themes": ["Finances publiques"]}' . "\n\n"
-            . "--- TEXTE ---\n" . $extrait;
-
+            .'Choisis les thèmes du catalogue ci-dessous qui correspondent le mieux à son contenu, '
+            ."par ordre de pertinence. Un seul thème peut suffire : n'en ajoute un deuxième que "
+            ."s'il est lui aussi clairement pertinent. Si aucun thème ne correspond, "
+            ."renvoie une liste vide.\n\n"
+            ."CATALOGUE :\n".Theme::catalogueCourtPourModele()."\n\n"
+            ."Réponds uniquement par un objet JSON de la forme :\n"
+            .'{"themes": ["Finances publiques"]}'."\n\n"
+            ."--- TEXTE ---\n".$extrait;
     }
 
     /**
@@ -96,14 +95,14 @@ final class ThemeClassifier
     private function extraireThemes(string $reponse): array
     {
         $donnees = $this->decoder($reponse);
-        if ($donnees === null) {
+        if (null === $donnees) {
             return [];
         }
 
         $themes = [];
         foreach ($this->extraireLibelles($donnees) as $libelle) {
             $theme = Theme::fromLabel($libelle);
-            if ($theme === null || \in_array($theme, $themes, true)) {
+            if (null === $theme || \in_array($theme, $themes, true)) {
                 continue;
             }
 
@@ -181,7 +180,7 @@ final class ThemeClassifier
     private function decoder(string $reponse): mixed
     {
         $brut = trim($reponse);
-        if ($brut === '') {
+        if ('' === $brut) {
             return null;
         }
 
@@ -191,7 +190,7 @@ final class ThemeClassifier
         }
 
         // Le modèle a parfois glissé du texte autour du JSON : on extrait le bloc.
-        if (preg_match('/\{.*\}/s', $brut, $correspondances) === 1) {
+        if (1 === preg_match('/\{.*\}/s', $brut, $correspondances)) {
             $donnees = json_decode($correspondances[0], true);
             if (\is_array($donnees)) {
                 return $donnees;

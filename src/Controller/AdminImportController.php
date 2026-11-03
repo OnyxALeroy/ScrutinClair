@@ -2,17 +2,21 @@
 
 namespace App\Controller;
 
+use App\Dto\StartImportPayload;
 use App\Entity\ImportJob;
-use App\Message\ImportJobMessage;
 use App\Service\ImportManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsCsrfTokenValid;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+#[IsGranted('ROLE_ADMIN')]
 final class AdminImportController extends AbstractController
 {
     /** Commands that can be launched from the admin, with their human label. */
@@ -43,8 +47,8 @@ final class AdminImportController extends AbstractController
         foreach ($jobs as $j) {
             $this->manager->reconcile($j);
             $path = $j->getLogPath();
-            $hasFile = $path !== null && is_file($path);
-            $hasPreview = (method_exists($j, 'getLogPreview') && $j->getLogPreview() !== null && $j->getLogPreview() !== '');
+            $hasFile = null !== $path && is_file($path);
+            $hasPreview = (method_exists($j, 'getLogPreview') && null !== $j->getLogPreview() && '' !== $j->getLogPreview());
             $jobsMeta[$j->getId()] = [
                 'downloadable' => ($hasFile || $hasPreview),
                 'params' => $this->describeOptions($j->getCommand(), $this->manager->effectiveOptions($j->getCommand(), $j->getArgs())),
@@ -108,9 +112,9 @@ final class AdminImportController extends AbstractController
     {
         $descriptions = $this->manager->optionDescriptions($command);
         $hint = static function (string $name, string|true $value) use ($descriptions): string {
-            $cli = $value === true ? '--' . $name : '--' . $name . '=' . $value;
+            $cli = true === $value ? '--'.$name : '--'.$name.'='.$value;
 
-            return ($descriptions[$name] ?? '') !== '' ? $cli . ' — ' . $descriptions[$name] : $cli;
+            return ($descriptions[$name] ?? '') !== '' ? $cli.' — '.$descriptions[$name] : $cli;
         };
         $scrutins = \in_array($command, self::SCRUTIN_COMMANDS, true);
         $chips = [];
@@ -118,14 +122,14 @@ final class AdminImportController extends AbstractController
         $from = $options['from-year'] ?? null;
         $to = $options['to-year'] ?? null;
         unset($options['from-year'], $options['to-year']);
-        if ($from !== null || $to !== null) {
+        if (null !== $from || null !== $to) {
             $label = match (true) {
-                $from !== null && $to !== null && $from === $to => 'Scrutins de ' . $from,
-                $from !== null && $to !== null => 'Scrutins de ' . $from . ' à ' . $to,
-                $from !== null => 'Scrutins depuis ' . $from,
-                default => 'Scrutins jusqu\'à ' . $to,
+                null !== $from && null !== $to && $from === $to => 'Scrutins de '.$from,
+                null !== $from && null !== $to => 'Scrutins de '.$from.' à '.$to,
+                null !== $from => 'Scrutins depuis '.$from,
+                default => 'Scrutins jusqu\'à '.$to,
             };
-            $hints = array_filter([$from !== null ? $hint('from-year', $from) : null, $to !== null ? $hint('to-year', $to) : null]);
+            $hints = array_filter([null !== $from ? $hint('from-year', $from) : null, null !== $to ? $hint('to-year', $to) : null]);
             $chips[] = ['label' => $label, 'hint' => implode("\n", $hints), 'flag' => false];
         }
 
@@ -136,78 +140,42 @@ final class AdminImportController extends AbstractController
                     'app:import-votes' => 'Recréation des votes déjà présents',
                     default => 'Retraitement des textes déjà traités',
                 },
-                'limit' => sprintf('Au plus %d %s', (int) $value, ($scrutins ? 'scrutin' : 'texte') . ((int) $value > 1 ? 's' : '')),
-                'uid' => 'Scrutin ' . $value . ' uniquement',
-                'dir' => 'Fichiers JSON : ' . $value,
-                'type' => self::TYPES[$value] ?? 'Type : ' . $value,
-                'chambre' => self::CHAMBRES[$value] ?? 'Chambre : ' . $value,
-                'shard' => preg_match('#^(\d+)/(\d+)$#', (string) $value, $m) ? sprintf('Lot %d sur %d', (int) $m[1] + 1, (int) $m[2]) : 'Lot ' . $value,
-                default => $value === true ? (self::FLAG_LABELS[$name] ?? '--' . $name) : '--' . $name . ' = ' . $value,
+                'limit' => sprintf('Au plus %d %s', (int) $value, ($scrutins ? 'scrutin' : 'texte').((int) $value > 1 ? 's' : '')),
+                'uid' => 'Scrutin '.$value.' uniquement',
+                'dir' => 'Fichiers JSON : '.$value,
+                'type' => self::TYPES[$value] ?? 'Type : '.$value,
+                'chambre' => self::CHAMBRES[$value] ?? 'Chambre : '.$value,
+                'shard' => preg_match('#^(\d+)/(\d+)$#', (string) $value, $m) ? sprintf('Lot %d sur %d', (int) $m[1] + 1, (int) $m[2]) : 'Lot '.$value,
+                default => true === $value ? (self::FLAG_LABELS[$name] ?? '--'.$name) : '--'.$name.' = '.$value,
             };
-            $chips[] = ['label' => $label, 'hint' => $hint($name, $value), 'flag' => $value === true];
+            $chips[] = ['label' => $label, 'hint' => $hint($name, $value), 'flag' => true === $value];
         }
 
         return $chips;
     }
 
     #[Route('/admin/imports/start', name: 'admin_imports_start', methods: ['POST'])]
-    public function start(Request $request): RedirectResponse
+    #[IsCsrfTokenValid('admin-imports')]
+    public function start(#[MapRequestPayload] StartImportPayload $payload = new StartImportPayload()): RedirectResponse
     {
-        $cmd = (string) $request->request->get('command', '');
-
-        // Use all() to safely retrieve array parameters (InputBag::get rejects arrays)
-        $posted = $request->request->all();
-        $params = [];
-        if (isset($posted['params']) && is_array($posted['params'])) {
-            $params = $posted['params'];
-        }
+        $cmd = (string) $payload->command;
+        $params = is_array($payload->params) ? $payload->params : [];
 
         if (!isset(self::COMMANDS[$cmd])) {
             $this->addFlash('error', 'Commande inconnue');
+
             return $this->redirectToRoute('admin_imports');
         }
 
-        // store exactly what the command will receive, so the jobs table shows what really ran
-        $args = $this->manager->effectiveOptions($cmd, $params);
-
-        $job = new ImportJob($cmd, $args);
-        $this->em->persist($job);
-        $this->em->flush();
-
-        // create a placeholder log file immediately so the UI can offer a download
-        try {
-            $projectDir = $this->getParameter('kernel.project_dir');
-            $logDir = $projectDir . '/var/import-logs';
-            if (!is_dir($logDir)) {
-                @mkdir($logDir, 0777, true);
-            }
-            $placeholder = sprintf('%s/import-%s-%s.log', $logDir, (new \DateTime())->format('Ymd-His'), bin2hex(random_bytes(4)));
-            // create empty file
-            @file_put_contents($placeholder, '[' . (new \DateTime())->format(DATE_ATOM) . "] PLACEHOLDER for job {$job->getId()}\n", LOCK_EX);
-            $job->setLogPath($placeholder);
-            // also set a small DB preview so downloads work even if file is removed by restart hooks
-            $job->setLogPreview('[' . (new \DateTime())->format(DATE_ATOM) . "] PLACEHOLDER for job {$job->getId()}\n");
-            $this->em->persist($job);
-            $this->em->flush();
-        } catch (\Throwable) {
-            // ignore placeholder failures
-        }
-
-        // dispatch to messenger if available, otherwise spawn process directly
-        $label = self::COMMANDS[$cmd];
-        if ($this->container->has('message_bus')) {
-            $bus = $this->container->get('message_bus');
-            $bus->dispatch(new ImportJobMessage($job->getId()));
-            $this->addFlash('success', sprintf('Tâche en file : %s (id %d)', $label, $job->getId()));
-        } else {
-            $this->manager->start($job);
-            $this->addFlash('success', sprintf('Tâche lancée : %s (id %d)', $label, $job->getId()));
-        }
+        $job = $this->manager->create($cmd, $params);
+        $this->manager->start($job);
+        $this->addFlash('success', sprintf('Tâche lancée : %s (id %d)', self::COMMANDS[$cmd], $job->getId()));
 
         return $this->redirectToRoute('admin_imports');
     }
 
     #[Route('/admin/imports/clear', name: 'admin_imports_clear', methods: ['POST'])]
+    #[IsCsrfTokenValid('admin-imports')]
     public function clear(): RedirectResponse
     {
         $purged = $this->manager->purgeFinished();
@@ -221,7 +189,7 @@ final class AdminImportController extends AbstractController
     {
         $repo = $this->em->getRepository(ImportJob::class);
         $job = $repo->find($id);
-        if ($job === null) {
+        if (null === $job) {
             return $this->json(['error' => 'not_found'], 404);
         }
 
@@ -238,12 +206,14 @@ final class AdminImportController extends AbstractController
     }
 
     #[Route('/admin/imports/{id}/cancel', name: 'admin_imports_cancel', methods: ['POST'])]
+    #[IsCsrfTokenValid('admin-imports')]
     public function cancel(int $id): RedirectResponse
     {
         $repo = $this->em->getRepository(ImportJob::class);
         $job = $repo->find($id);
-        if ($job === null) {
+        if (null === $job) {
             $this->addFlash('error', 'Job introuvable');
+
             return $this->redirectToRoute('admin_imports');
         }
 
@@ -258,8 +228,8 @@ final class AdminImportController extends AbstractController
     {
         $repo = $this->em->getRepository(ImportJob::class);
         $job = $repo->find($id);
-        if ($job === null) {
-            return new StreamedResponse(fn() => print('Not found'), Response::HTTP_NOT_FOUND);
+        if (null === $job) {
+            return new StreamedResponse(fn () => print ('Not found'), Response::HTTP_NOT_FOUND);
         }
 
         $response = new StreamedResponse(function () use ($job) {
@@ -278,11 +248,11 @@ final class AdminImportController extends AbstractController
                 $progress = $job->getProgress();
                 $payload = json_encode(['log' => $log, 'status' => $status, 'progress' => $progress]);
                 if ($payload !== $last) {
-                    echo "data: " . $payload . "\n\n";
+                    echo 'data: '.$payload."\n\n";
                     $last = $payload;
                     $idle = 0;
                 } else {
-                    $idle++;
+                    ++$idle;
                 }
 
                 // if job finished and no changes for a few loops, stop streaming
@@ -330,13 +300,13 @@ final class AdminImportController extends AbstractController
 
                     $payload = json_encode($data);
                     if ($payload !== $last) {
-                        echo "data: " . $payload . "\n\n";
+                        echo 'data: '.$payload."\n\n";
                         $last = $payload;
                     }
                 } catch (\Throwable $e) {
                     // ignore but do not break the loop
                     // write to PHP error log for investigation
-                    error_log('streamAll error: ' . $e->getMessage());
+                    error_log('streamAll error: '.$e->getMessage());
                 }
 
                 // end the stream regularly (the browser reconnects) so it never pins a php-fpm worker for long
@@ -360,14 +330,14 @@ final class AdminImportController extends AbstractController
     {
         $repo = $this->em->getRepository(ImportJob::class);
         $job = $repo->find($id);
-        if ($job === null) {
+        if (null === $job) {
             return $this->json(['error' => 'not_found'], 404);
         }
 
         $path = $job->getLogPath();
 
         // If the file exists, send it directly
-        if ($path !== null && is_file($path)) {
+        if (null !== $path && is_file($path)) {
             $response = new \Symfony\Component\HttpFoundation\BinaryFileResponse($path);
             $disposition = $response->headers->makeDisposition(\Symfony\Component\HttpFoundation\ResponseHeaderBag::DISPOSITION_ATTACHMENT, basename($path));
             $response->headers->set('Content-Disposition', $disposition);
@@ -376,22 +346,22 @@ final class AdminImportController extends AbstractController
         }
 
         // Fallback: if the file was removed but we still have recent content in the log path, stream it
-        if ($path !== null) {
+        if (null !== $path) {
             $content = $this->manager->tailLog($path, 2000);
-                if ($content !== '') {
-                    $filename = basename($path) ?: sprintf('import-%d.log', $job->getId());
-                    $response = new \Symfony\Component\HttpFoundation\Response($content, 200, [
-                        'Content-Type' => 'text/plain; charset=UTF-8',
-                    ]);
-                    $disposition = $response->headers->makeDisposition(\Symfony\Component\HttpFoundation\ResponseHeaderBag::DISPOSITION_ATTACHMENT, $filename);
-                    $response->headers->set('Content-Disposition', $disposition);
+            if ('' !== $content) {
+                $filename = basename($path) ?: sprintf('import-%d.log', $job->getId());
+                $response = new Response($content, 200, [
+                    'Content-Type' => 'text/plain; charset=UTF-8',
+                ]);
+                $disposition = $response->headers->makeDisposition(\Symfony\Component\HttpFoundation\ResponseHeaderBag::DISPOSITION_ATTACHMENT, $filename);
+                $response->headers->set('Content-Disposition', $disposition);
 
-                    return $response;
-                }
+                return $response;
+            }
         }
 
         // If we reach here, no file and no preview: return a small placeholder message and persist it
-        $placeholderContent = '[' . (new \DateTime())->format(DATE_ATOM) . "] (journal supprimé ou non disponible)\n";
+        $placeholderContent = '['.(new \DateTime())->format(DATE_ATOM)."] (journal supprimé ou non disponible)\n";
         try {
             $job->setLogPreview($placeholderContent);
             $this->em->persist($job);
@@ -401,7 +371,7 @@ final class AdminImportController extends AbstractController
         }
 
         $filename = sprintf('import-%d.log', $job->getId());
-        $response = new \Symfony\Component\HttpFoundation\Response($placeholderContent, 200, [
+        $response = new Response($placeholderContent, 200, [
             'Content-Type' => 'text/plain; charset=UTF-8',
         ]);
         $disposition = $response->headers->makeDisposition(\Symfony\Component\HttpFoundation\ResponseHeaderBag::DISPOSITION_ATTACHMENT, $filename);

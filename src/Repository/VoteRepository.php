@@ -178,5 +178,4 @@ class VoteRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
-
 }

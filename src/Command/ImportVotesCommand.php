@@ -48,7 +48,7 @@ final class ImportVotesCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $limit = $input->getOption('limit') !== null ? (int) $input->getOption('limit') : null;
+        $limit = null !== $input->getOption('limit') ? (int) $input->getOption('limit') : null;
         $uidCible = $input->getOption('uid');
         $force = (bool) $input->getOption('force');
 
@@ -59,15 +59,15 @@ final class ImportVotesCommand extends Command
             return Command::FAILURE;
         }
 
-        $fichiers = glob($dossier . '/*.json');
+        $fichiers = glob($dossier.'/*.json');
         sort($fichiers);
 
-        if ($uidCible !== null && $uidCible !== '') {
+        if (null !== $uidCible && '' !== $uidCible) {
             $fichiers = array_values(array_filter(
                 $fichiers,
                 static fn (string $fichier): bool => basename($fichier, '.json') === $uidCible,
             ));
-            if ($fichiers === []) {
+            if ([] === $fichiers) {
                 $io->error(sprintf('Aucun fichier de scrutin trouvé pour uid "%s".', $uidCible));
 
                 return Command::FAILURE;
@@ -92,7 +92,7 @@ final class ImportVotesCommand extends Command
             $nom = basename($fichier, '.json');
 
             $contenu = file_get_contents($fichier);
-            if ($contenu === false) {
+            if (false === $contenu) {
                 $io->progressAdvance();
                 continue;
             }
@@ -113,7 +113,7 @@ final class ImportVotesCommand extends Command
                 [ParameterType::STRING],
             );
 
-            if ($texteId === false || $texteId === null) {
+            if (false === $texteId || null === $texteId) {
                 ++$compteurSansTexte;
                 $io->progressAdvance();
                 continue;
@@ -145,18 +145,18 @@ final class ImportVotesCommand extends Command
                 throw $e;
             }
 
-            if ($lignes !== []) {
+            if ([] !== $lignes) {
                 ++$compteurTextes;
                 $compteurVotes += \count($lignes);
             }
 
-            if ($compteurTextes > 0 && $compteurTextes % self::TEXTES_AVANT_RESET === 0) {
+            if ($compteurTextes > 0 && 0 === $compteurTextes % self::TEXTES_AVANT_RESET) {
                 $this->debugDataHolder->reset();
             }
 
             $io->progressAdvance();
 
-            if ($limit !== null && $limit > 0 && $compteurTextes >= $limit) {
+            if (null !== $limit && $limit > 0 && $compteurTextes >= $limit) {
                 break;
             }
         }
@@ -221,7 +221,7 @@ final class ImportVotesCommand extends Command
             }
 
             $groupeUid = $groupe['organeRef'] ?? null;
-            $groupeId = $groupeUid !== null ? ($groupesIds[$groupeUid] ?? null) : null;
+            $groupeId = null !== $groupeUid ? ($groupesIds[$groupeUid] ?? null) : null;
 
             $typesVote = [
                 'Pour' => $decompte['pours']['votant'] ?? [],
@@ -285,8 +285,8 @@ final class ImportVotesCommand extends Command
                 $types[] = ParameterType::STRING;
                 $types[] = ParameterType::INTEGER;
                 $types[] = ParameterType::INTEGER;
-                $types[] = $ligne['groupe'] === null ? ParameterType::NULL : ParameterType::STRING;
-                $types[] = $ligne['groupe_politique_id'] === null ? ParameterType::NULL : ParameterType::INTEGER;
+                $types[] = null === $ligne['groupe'] ? ParameterType::NULL : ParameterType::STRING;
+                $types[] = null === $ligne['groupe_politique_id'] ? ParameterType::NULL : ParameterType::INTEGER;
             }
 
             $this->connection->executeStatement(

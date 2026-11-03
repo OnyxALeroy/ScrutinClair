@@ -18,18 +18,18 @@ final class ImportJobTerminateListener
 {
     public function __construct(
         private readonly Connection $connection,
-        #[Autowire('%env(default::' . ImportManager::JOB_ENV . ')%')]
+        #[Autowire('%env(default::'.ImportManager::JOB_ENV.')%')]
         private readonly ?string $jobId,
     ) {
     }
 
     public function __invoke(ConsoleTerminateEvent $event): void
     {
-        if ($this->jobId === null || $this->jobId === '' || $event->getCommand() === null) {
+        if (null === $this->jobId || '' === $this->jobId || null === $event->getCommand()) {
             return;
         }
 
-        $success = $event->getExitCode() === 0;
+        $success = 0 === $event->getExitCode();
         $sql = $success
             ? "UPDATE import_job SET status = 'success', progress = 100, finished_at = NOW() WHERE id = ? AND command = ? AND status = 'running'"
             : "UPDATE import_job SET status = 'failed', finished_at = NOW() WHERE id = ? AND command = ? AND status = 'running'";

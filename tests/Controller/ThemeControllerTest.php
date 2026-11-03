@@ -17,18 +17,18 @@ final class ThemeControllerTest extends WebTestCase
     {
         $em = static::getContainer()->get(EntityManagerInterface::class);
 
-        if ($this->texteId !== null) {
+        if (null !== $this->texteId) {
             $texte = $em->find(Texte::class, $this->texteId);
-            if ($texte !== null) {
+            if (null !== $texte) {
                 $em->remove($texte);
                 $em->flush();
             }
             $this->texteId = null;
         }
 
-        if ($this->tagId !== null) {
+        if (null !== $this->tagId) {
             $tag = $em->find(Tag::class, $this->tagId);
-            if ($tag !== null) {
+            if (null !== $tag) {
                 $em->remove($tag);
                 $em->flush();
             }
@@ -61,7 +61,7 @@ final class ThemeControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.detail-head', 'Finances publiques');
-        self::assertSelectorExists('a[href="/textes/' . $texte->getId() . '"]');
+        self::assertSelectorExists('a[href="/textes/'.$texte->getId().'"]');
     }
 
     public function testUnknownThemeReturnsNotFound(): void
@@ -75,14 +75,14 @@ final class ThemeControllerTest extends WebTestCase
     private function createTexteTheme(EntityManagerInterface $em, string $token, Theme $theme): Texte
     {
         $texte = new Texte();
-        $texte->setTitre('Titre de test ' . $token);
-        $texte->setObjet('Objet de test ' . $token);
-        $texte->setUidScrutin('THEME' . $token);
+        $texte->setTitre('Titre de test '.$token);
+        $texte->setObjet('Objet de test '.$token);
+        $texte->setUidScrutin('THEME'.$token);
         $em->persist($texte);
 
         $tag = $em->getRepository(Tag::class)->findOneBy(['nom' => $theme->label()]);
         $cree = false;
-        if ($tag === null) {
+        if (null === $tag) {
             $tag = new Tag();
             $tag->setNom($theme->label());
             $tag->setSlug($theme->slug());

@@ -23,17 +23,17 @@ final class SenatDataProvider
      */
     public function donnees(): array
     {
-        if ($this->donnees !== null) {
+        if (null !== $this->donnees) {
             return $this->donnees;
         }
 
-        $repertoire = $this->projectDir . '/data/senat';
+        $repertoire = $this->projectDir.'/data/senat';
         if (!is_dir($repertoire) && !mkdir($repertoire, 0775, true) && !is_dir($repertoire)) {
-            throw new \RuntimeException('Impossible de créer le répertoire ' . $repertoire);
+            throw new \RuntimeException('Impossible de créer le répertoire '.$repertoire);
         }
 
-        $archive = $repertoire . '/export_sens.zip';
-        $cache = $repertoire . '/export_sens.json';
+        $archive = $repertoire.'/export_sens.zip';
+        $cache = $repertoire.'/export_sens.json';
 
         if (!is_file($archive) || filemtime($archive) < time() - 604800) {
             try {
@@ -47,19 +47,19 @@ final class SenatDataProvider
 
         if (is_file($cache) && filemtime($cache) >= filemtime($archive)) {
             $contenu = file_get_contents($cache);
-            $donnees = $contenu !== false ? json_decode($contenu, true) : null;
+            $donnees = false !== $contenu ? json_decode($contenu, true) : null;
             if (\is_array($donnees)) {
                 return $this->donnees = $donnees;
             }
         }
 
         $zip = new \ZipArchive();
-        if ($zip->open($archive) !== true) {
-            throw new \RuntimeException('Impossible d’ouvrir ' . $archive);
+        if (true !== $zip->open($archive)) {
+            throw new \RuntimeException('Impossible d’ouvrir '.$archive);
         }
 
         $flux = $zip->getStream('export_sens.sql');
-        if ($flux === false) {
+        if (false === $flux) {
             $zip->close();
             throw new \RuntimeException('export_sens.sql est absent de l’archive Sénat.');
         }
@@ -88,7 +88,7 @@ final class SenatDataProvider
         $resultat = [];
         foreach ($this->donnees()['grppol'] as $groupe) {
             $code = $groupe['grppolcod'] ?? null;
-            if ($code !== null) {
+            if (null !== $code) {
                 $resultat[$code] = $groupe;
             }
         }
@@ -116,14 +116,14 @@ final class SenatDataProvider
         foreach ($this->appartenances()[$matricule] ?? [] as $appartenance) {
             $debut = $appartenance['debut'];
             $fin = $appartenance['fin'];
-            if ($debut !== null && $debut > $jour) {
+            if (null !== $debut && $debut > $jour) {
                 continue;
             }
-            if ($fin !== null && $fin < $jour) {
+            if (null !== $fin && $fin < $jour) {
                 continue;
             }
 
-            if ($meilleurDebut === null || ($debut ?? '') > $meilleurDebut
+            if (null === $meilleurDebut || ($debut ?? '') > $meilleurDebut
                 || (($debut ?? '') === $meilleurDebut && $this->priorite($appartenance) > $this->priorite($meilleur))) {
                 $meilleur = $appartenance;
                 $meilleurDebut = $debut ?? '';
@@ -150,7 +150,7 @@ final class SenatDataProvider
         $dernier = null;
         $dernierDebut = null;
         foreach ($this->appartenances()[$matricule] ?? [] as $appartenance) {
-            if ($dernierDebut === null || ($appartenance['debut'] ?? '') > $dernierDebut) {
+            if (null === $dernierDebut || ($appartenance['debut'] ?? '') > $dernierDebut) {
                 $dernier = $appartenance['code'];
                 $dernierDebut = $appartenance['debut'] ?? '';
             }
@@ -164,7 +164,7 @@ final class SenatDataProvider
         $nom = $senateur['sennomuse'] ?? null;
         $prenom = $senateur['senprenomuse'] ?? null;
         $matricule = $senateur['senmat'] ?? null;
-        if ($nom === null || $prenom === null || $matricule === null) {
+        if (null === $nom || null === $prenom || null === $matricule) {
             return null;
         }
 
@@ -173,7 +173,7 @@ final class SenatDataProvider
 
     public static function date(?string $valeur): ?\DateTimeImmutable
     {
-        if ($valeur === null || $valeur === '') {
+        if (null === $valeur || '' === $valeur) {
             return null;
         }
 
@@ -189,7 +189,7 @@ final class SenatDataProvider
      */
     private function appartenances(): array
     {
-        if ($this->appartenancesParMatricule !== null) {
+        if (null !== $this->appartenancesParMatricule) {
             return $this->appartenancesParMatricule;
         }
 
@@ -198,7 +198,7 @@ final class SenatDataProvider
         foreach ($this->donnees()['memgrppol'] as $appartenance) {
             $matricule = $appartenance['senmat'] ?? null;
             $code = $appartenance['grppolcod'] ?? null;
-            if ($matricule === null || $code === null || !isset($groupes[$code])) {
+            if (null === $matricule || null === $code || !isset($groupes[$code])) {
                 continue;
             }
             if (\in_array($code, ['AUCUN', 'AUCUNSEN'], true)) {

@@ -79,28 +79,28 @@ enum Theme: string
     {
         return match ($this) {
             self::FinancesPubliques => "budget de l'État, dette publique, comptes publics, finances des collectivités",
-            self::Fiscalite => "impôts, TVA, fiscalité des entreprises et des ménages, redevances",
+            self::Fiscalite => 'impôts, TVA, fiscalité des entreprises et des ménages, redevances',
             self::Economie => "concurrence, entreprises, PME, régulation économique, pouvoir d'achat",
-            self::Travail => "code du travail, licenciement, salaires, dialogue social, formation professionnelle",
-            self::Sante => "assurance maladie, hôpitaux, médicaments, santé publique, professions de santé",
-            self::Education => "école primaire et secondaire, programmes scolaires, enseignants, rentrée scolaire",
-            self::Recherche => "recherche publique, laboratoires, financement de la recherche, innovation",
-            self::EnseignementSuperieur => "universités, licences et diplômes, étudiants, parcours de formation",
-            self::Culture => "cinéma, musique, patrimoine culturel, bibliothèques, spectacles",
-            self::Sports => "sport amateur, sport professionnel, Jeux olympiques, clubs et fédérations",
+            self::Travail => 'code du travail, licenciement, salaires, dialogue social, formation professionnelle',
+            self::Sante => 'assurance maladie, hôpitaux, médicaments, santé publique, professions de santé',
+            self::Education => 'école primaire et secondaire, programmes scolaires, enseignants, rentrée scolaire',
+            self::Recherche => 'recherche publique, laboratoires, financement de la recherche, innovation',
+            self::EnseignementSuperieur => 'universités, licences et diplômes, étudiants, parcours de formation',
+            self::Culture => 'cinéma, musique, patrimoine culturel, bibliothèques, spectacles',
+            self::Sports => 'sport amateur, sport professionnel, Jeux olympiques, clubs et fédérations',
             self::Ecologie => "biodiversité, climat, pollutions, espaces naturels, protection de l'environnement",
-            self::Energie => "électricité, gaz, énergies renouvelables, sobriété énergétique, énergie nucléaire",
-            self::Transports => "transports en commun, route, ferroviaire, aviation, mobilités",
-            self::Logement => "logement social, location, accession à la propriété, habitat, métropole",
-            self::Agriculture => "agriculture, élevage, pêche, alimentation, sécurité sanitaire",
-            self::Justice => "tribunaux, procès, lois pénales, civils, pénitentiaire",
-            self::SecuriteInterieure => "police, gendarmerie, vidéosurveillance, ordre public, sécurité administrative",
-            self::Defense => "armées, défense nationale, budget militaire, opérations extérieures",
-            self::Famille => "enfance, natalité, aides aux familles, parenting, femmes",
-            self::Handicap => "handicap, personnes handicapées, inclusion, accessibilité",
-            self::Numerique => "numérique, internet, intelligence artificielle, données personnelles, plateformes",
-            self::Collectivites => "communes, départements, régions, intercommunalités, décentralisation",
-            self::RelationsInternationales => "diplomatie, unions européennes, aide au développement, sanctions internationales",
+            self::Energie => 'électricité, gaz, énergies renouvelables, sobriété énergétique, énergie nucléaire',
+            self::Transports => 'transports en commun, route, ferroviaire, aviation, mobilités',
+            self::Logement => 'logement social, location, accession à la propriété, habitat, métropole',
+            self::Agriculture => 'agriculture, élevage, pêche, alimentation, sécurité sanitaire',
+            self::Justice => 'tribunaux, procès, lois pénales, civils, pénitentiaire',
+            self::SecuriteInterieure => 'police, gendarmerie, vidéosurveillance, ordre public, sécurité administrative',
+            self::Defense => 'armées, défense nationale, budget militaire, opérations extérieures',
+            self::Famille => 'enfance, natalité, aides aux familles, parenting, femmes',
+            self::Handicap => 'handicap, personnes handicapées, inclusion, accessibilité',
+            self::Numerique => 'numérique, internet, intelligence artificielle, données personnelles, plateformes',
+            self::Collectivites => 'communes, départements, régions, intercommunalités, décentralisation',
+            self::RelationsInternationales => 'diplomatie, unions européennes, aide au développement, sanctions internationales',
         };
     }
 
@@ -119,7 +119,7 @@ enum Theme: string
     public static function fromLabel(string $label): ?self
     {
         $normalise = self::normaliser($label);
-        if ($normalise === '') {
+        if ('' === $normalise) {
             return null;
         }
 
@@ -134,7 +134,7 @@ enum Theme: string
             static fn (self $theme): bool => str_starts_with(self::normaliser($theme->value), $normalise),
         );
 
-        return \count($candidats) === 1 ? reset($candidats) : null;
+        return 1 === \count($candidats) ? reset($candidats) : null;
     }
 
     /**

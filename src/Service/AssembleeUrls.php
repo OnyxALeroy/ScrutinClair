@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Service;
 
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -17,8 +18,8 @@ final class AssembleeUrls
         $host = preg_replace('#^https?://#i', '', trim($domain));
         $host = preg_replace('#^(?:www|data)\.#i', '', $host);
 
-        $this->site = 'https://www.' . $host;
-        $this->openData = 'https://data.' . $host;
+        $this->site = 'https://www.'.$host;
+        $this->openData = 'https://data.'.$host;
     }
 
     public function legislature(): int

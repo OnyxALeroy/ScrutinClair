@@ -309,13 +309,13 @@ class Texte
     public function getTitreLong(): string
     {
         $objet = trim((string) $this->objet);
-        if ($objet !== '') {
+        if ('' !== $objet) {
             return $objet;
         }
 
         $titre = trim((string) $this->titre);
 
-        return $titre !== '' ? $titre : 'Texte sans titre';
+        return '' !== $titre ? $titre : 'Texte sans titre';
     }
 
     /**
@@ -326,7 +326,7 @@ class Texte
     {
         $court = trim((string) $this->titreCourt);
 
-        return $court !== '' ? $court : $this->getTitreLong();
+        return '' !== $court ? $court : $this->getTitreLong();
     }
 
     /**
@@ -436,14 +436,14 @@ class Texte
 
             $statut = $vote->getStatut();
             if (isset($votesParGroupe[$uid][$statut])) {
-                $votesParGroupe[$uid][$statut]++;
-                $votesParGroupe[$uid]['total']++;
-                $totalVotes++;
-                $totaux[$statut]++;
+                ++$votesParGroupe[$uid][$statut];
+                ++$votesParGroupe[$uid]['total'];
+                ++$totalVotes;
+                ++$totaux[$statut];
             }
         }
 
-        if ($totalVotes === 0) {
+        if (0 === $totalVotes) {
             return [
                 'total' => 0,
                 'pour' => 0,
@@ -471,7 +471,7 @@ class Texte
         $groupes = [];
 
         foreach ($votesParGroupe as $donnees) {
-            if ($donnees['total'] === 0) {
+            if (0 === $donnees['total']) {
                 continue;
             }
 
@@ -488,7 +488,7 @@ class Texte
             $segments = [];
             foreach (['Pour', 'Contre', 'Abstention'] as $statut) {
                 $nombre = $donnees[$statut];
-                if ($nombre === 0) {
+                if (0 === $nombre) {
                     continue;
                 }
 

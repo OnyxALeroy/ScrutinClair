@@ -26,13 +26,13 @@ class PersonnalitePolitiqueRepository extends ServiceEntityRepository
     public function search(string $q, int $limit = 20): array
     {
         $q = trim($q);
-        if ($q === '') {
+        if ('' === $q) {
             return [];
         }
 
         return $this->createQueryBuilder('p')
             ->andWhere('LOWER(p.nom) LIKE LOWER(:q) OR LOWER(p.prenom) LIKE LOWER(:q)')
-            ->setParameter('q', '%' . $q . '%')
+            ->setParameter('q', '%'.$q.'%')
             ->orderBy('p.nom', 'ASC')
             ->addOrderBy('p.prenom', 'ASC')
             ->setMaxResults($limit)
@@ -61,10 +61,10 @@ class PersonnalitePolitiqueRepository extends ServiceEntityRepository
      */
     public function findByGroupe(GroupePolitique $groupe): array
     {
-        $champ = $groupe->getChambre() === Chambre::Senat ? 'p.groupePolitiqueSenat' : 'p.groupePolitique';
+        $champ = Chambre::Senat === $groupe->getChambre() ? 'p.groupePolitiqueSenat' : 'p.groupePolitique';
 
         return $this->createQueryBuilder('p')
-            ->andWhere($champ . ' = :groupe')
+            ->andWhere($champ.' = :groupe')
             ->setParameter('groupe', $groupe)
             ->orderBy('p.nom', 'ASC')
             ->addOrderBy('p.prenom', 'ASC')

@@ -40,10 +40,10 @@ final class ImportManagerTest extends KernelTestCase
         self::bootKernel();
         $ligne = $this->construire($nom, $args + ['inconnu' => 'x']);
 
-        $prefixe = "'php' '-d' 'memory_limit=1G' 'bin/console' '" . $nom . "'";
+        $prefixe = "'php' '-d' 'memory_limit=1G' 'bin/console' '".$nom."'";
         self::assertStringStartsWith($prefixe, $ligne);
         foreach ($attendus as $attendu) {
-            self::assertStringContainsString("'" . $attendu . "'", $ligne);
+            self::assertStringContainsString("'".$attendu."'", $ligne);
         }
         self::assertStringNotContainsString('inconnu', $ligne);
 

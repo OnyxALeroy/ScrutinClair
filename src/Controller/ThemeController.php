@@ -38,20 +38,20 @@ final class ThemeController extends AbstractController
         TexteRepository $texteRepository,
     ): Response {
         $theme = $this->themesDuCatalogue()[$slug] ?? null;
-        if ($theme === null) {
+        if (null === $theme) {
             throw $this->createNotFoundException('Ce thème est introuvable.');
         }
 
         $tag = $tagRepository->findOneBy(['slug' => $slug]);
 
         $parPage = 20;
-        $total = $tag !== null ? $texteRepository->compterPourTheme($tag) : 0;
+        $total = null !== $tag ? $texteRepository->compterPourTheme($tag) : 0;
         $pages = max(1, (int) ceil($total / $parPage));
         $page = min(max(1, (int) $request->query->get('page', 1)), $pages);
 
         return $this->render('theme/show.html.twig', [
             'theme' => $theme,
-            'textes' => $tag !== null ? $texteRepository->findPourTheme($tag, $parPage, ($page - 1) * $parPage) : [],
+            'textes' => null !== $tag ? $texteRepository->findPourTheme($tag, $parPage, ($page - 1) * $parPage) : [],
             'page' => $page,
             'pages' => $pages,
             'total' => $total,

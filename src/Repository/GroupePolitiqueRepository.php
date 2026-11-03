@@ -24,13 +24,13 @@ class GroupePolitiqueRepository extends ServiceEntityRepository
     public function search(string $q, int $limit = 20): array
     {
         $q = trim($q);
-        if ($q === '') {
+        if ('' === $q) {
             return [];
         }
 
         return $this->createQueryBuilder('g')
             ->andWhere('LOWER(g.nom) LIKE LOWER(:q) OR LOWER(g.acronyme) LIKE LOWER(:q)')
-            ->setParameter('q', '%' . $q . '%')
+            ->setParameter('q', '%'.$q.'%')
             ->orderBy('g.ordre', 'ASC')
             ->setMaxResults($limit)
             ->getQuery()

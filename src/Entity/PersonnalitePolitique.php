@@ -126,7 +126,7 @@ class PersonnalitePolitique
 
     public function getNomComplet(): string
     {
-        return trim(($this->prenom ?? '') . ' ' . ($this->nom ?? ''));
+        return trim(($this->prenom ?? '').' '.($this->nom ?? ''));
     }
 
     public function getGroupePolitique(): ?GroupePolitique

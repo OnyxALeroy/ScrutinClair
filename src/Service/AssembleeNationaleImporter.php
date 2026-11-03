@@ -1,15 +1,15 @@
 <?php
+
 namespace App\Service;
 
-use App\Entity\Texte;
 use App\Entity\PersonnalitePolitique;
+use App\Entity\Texte;
 use App\Entity\Vote;
 use App\Enum\Chambre;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Finder\Finder;
-use Symfony\Component\Console\Style\SymfonyStyle;
-use ZipArchive;
 
 class AssembleeNationaleImporter
 {
@@ -19,14 +19,15 @@ class AssembleeNationaleImporter
         private EntityManagerInterface $entityManager,
         private AssembleeUrls $urls,
         private ResilientDownloader $downloader,
-        private \Doctrine\DBAL\Connection $connection
-    ) {}
+        private \Doctrine\DBAL\Connection $connection,
+    ) {
+    }
 
     public function importTextes(?SymfonyStyle $io = null, ?callable $onProgress = null, ?int $fromYear = null, ?int $toYear = null, ?int $limit = null, bool $force = false, ?string $chambre = null): void
     {
-        $dataDir = $this->projectDir . '/data';
-        $zipPath = $dataDir . '/scrutins.zip';
-        $extractPath = $dataDir . '/scrutins_extraits';
+        $dataDir = $this->projectDir.'/data';
+        $zipPath = $dataDir.'/scrutins.zip';
+        $extractPath = $dataDir.'/scrutins_extraits';
 
         if (!is_dir($dataDir)) {
             mkdir($dataDir, 0777, true);
@@ -43,8 +44,8 @@ class AssembleeNationaleImporter
         $this->downloader->download($this->urls->scrutinsZipUrl(), $zipPath);
 
         // 2. Extraction
-        $zip = new ZipArchive();
-        if ($zip->open($zipPath) === true) {
+        $zip = new \ZipArchive();
+        if (true === $zip->open($zipPath)) {
             $zip->extractTo($extractPath);
             $zip->close();
 
@@ -82,7 +83,7 @@ class AssembleeNationaleImporter
                 // Filter by year range if requested
                 $date = $data['scrutin']['dateScrutin'] ?? null;
                 $year = null;
-                if (is_string($date) && $date !== '') {
+                if (is_string($date) && '' !== $date) {
                     try {
                         $dt = new \DateTimeImmutable($date);
                         $year = (int) $dt->format('Y');
@@ -90,10 +91,10 @@ class AssembleeNationaleImporter
                         $year = null;
                     }
                 }
-                if ($fromYear !== null && $year !== null && $year < $fromYear) {
+                if (null !== $fromYear && null !== $year && $year < $fromYear) {
                     continue;
                 }
-                if ($toYear !== null && $year !== null && $year > $toYear) {
+                if (null !== $toYear && null !== $year && $year > $toYear) {
                     continue;
                 }
 
@@ -104,15 +105,15 @@ class AssembleeNationaleImporter
                 $titre = $donneesScrutin['objet']['libelle'] ?? $donneesScrutin['titre'] ?? 'Scrutin sans titre';
 
                 // Anti-doublon : priorité à l'identifiant stable du scrutin
-                if ($uid !== null && $uid !== '') {
+                if (null !== $uid && '' !== $uid) {
                     $texteExistant = $texteRepository->findOneBy(['uidScrutin' => $uid]);
                 } else {
                     $texteExistant = $texteRepository->findOneBy(['titre' => $titre]);
                 }
-                if ($texteExistant !== null) {
+                if (null !== $texteExistant) {
                     if ($force) {
                         // remove existing votes for this texte so we can reimport
-                        if ($texteExistant->getId() !== null) {
+                        if (null !== $texteExistant->getId()) {
                             $this->connection->executeStatement('DELETE FROM vote WHERE texte_id = ?', [$texteExistant->getId()]);
                         }
                     } else {
@@ -130,14 +131,14 @@ class AssembleeNationaleImporter
                 $texte->setDossierRef($donneesScrutin['objet']['dossierLegislatif']['dossierRef'] ?? null);
                 $texte->setLien($this->construireLienScrutin($uid));
                 $sort = $donneesScrutin['sort']['libelle'] ?? 'Résultat inconnu';
-                $texte->setDescription('Résultat du vote : ' . $sort);
+                $texte->setDescription('Résultat du vote : '.$sort);
                 $texte->setResultat($this->normaliserResultat($donneesScrutin['sort']['code'] ?? null));
                 $texte->setDateScrutin($this->dateOuNull($donneesScrutin['dateScrutin'] ?? null));
                 $nonVotants = $donneesScrutin['syntheseVote']['decompte']['nonVotants'] ?? null;
                 $texte->setNonVotants(is_numeric($nonVotants) ? (int) $nonVotants : null);
 
                 $this->entityManager->persist($texte);
-                $compteurTextes++;
+                ++$compteurTextes;
 
                 // 4. LECTURE DES VOTES
                 $groupes = $donneesScrutin['ventilationVotes']['organe']['groupes']['groupe'] ?? [];
@@ -147,16 +148,20 @@ class AssembleeNationaleImporter
 
                 foreach ($groupes as $groupe) {
                     $decompte = $groupe['vote']['decompteNominatif'] ?? null;
-                    if (!$decompte) continue;
+                    if (!$decompte) {
+                        continue;
+                    }
 
                     $typesVote = [
                         'Pour' => $decompte['pours']['votant'] ?? [],
                         'Contre' => $decompte['contres']['votant'] ?? [],
-                        'Abstention' => $decompte['abstentions']['votant'] ?? []
+                        'Abstention' => $decompte['abstentions']['votant'] ?? [],
                     ];
 
                     foreach ($typesVote as $statut => $votants) {
-                        if (empty($votants)) continue;
+                        if (empty($votants)) {
+                            continue;
+                        }
 
                         if (isset($votants['acteurRef'])) {
                             $votants = [$votants]; // Formatage forcé en tableau si un seul votant
@@ -180,7 +185,7 @@ class AssembleeNationaleImporter
                                 }
 
                                 $this->entityManager->persist($vote);
-                                $compteurVotes++;
+                                ++$compteurVotes;
                             }
                         }
                     }
@@ -190,18 +195,18 @@ class AssembleeNationaleImporter
                 if ($io) {
                     $io->progressAdvance();
                 }
-                if ($onProgress !== null && $totalFichiers > 0) {
-                    $processed++;
+                if (null !== $onProgress && $totalFichiers > 0) {
+                    ++$processed;
                     $onProgress((int) floor(($processed / $totalFichiers) * 100));
                 }
 
                 // Respect limit if provided
-                if ($limit !== null && $processed >= $limit) {
+                if (null !== $limit && $processed >= $limit) {
                     break;
                 }
 
                 // 5. Gestion de la mémoire : on vide tous les 20 textes (soit environ 10 000 votes)
-                if ($compteurTextes % 20 === 0) {
+                if (0 === $compteurTextes % 20) {
                     $this->entityManager->flush();
                     $this->entityManager->clear();
 
@@ -233,7 +238,7 @@ class AssembleeNationaleImporter
 
     private function normaliserResultat(?string $resultat): ?string
     {
-        if ($resultat === null || $resultat === '') {
+        if (null === $resultat || '' === $resultat) {
             return null;
         }
 
@@ -242,7 +247,7 @@ class AssembleeNationaleImporter
 
     private function dateOuNull(mixed $valeur): ?\DateTimeImmutable
     {
-        if (!is_string($valeur) || $valeur === '') {
+        if (!is_string($valeur) || '' === $valeur) {
             return null;
         }
 
@@ -255,7 +260,7 @@ class AssembleeNationaleImporter
 
     private function construireLienScrutin(?string $uid): ?string
     {
-        if ($uid === null || $uid === '') {
+        if (null === $uid || '' === $uid) {
             return null;
         }
 
